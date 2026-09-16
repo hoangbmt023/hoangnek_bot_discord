@@ -84,3 +84,17 @@ Khi bot có thêm các chức năng phức tạp (ví dụ: Quản lý điểm k
 2. Tạo `BaseCommand.js` (gồm `data` từ `SlashCommandBuilder` và phương thức `execute(interaction)`).
 3. Tạo `CommandLoader.js` trong `src/core/` tương tự `EventLoader.js` để tự động nạp lệnh và đăng ký qua Discord REST API.
 4. Bắt sự kiện `Events.InteractionCreate` để điều phối lệnh.
+
+---
+
+## 3. Hệ thống Logging & Log Rotation (Tự động dọn dẹp)
+
+Dự án sử dụng module `src/utils/logger.js` được thiết kế tối ưu, không phụ thuộc thư viện nặng ngoài (Zero-dependency):
+- **Phân luồng Log chuẩn hệ thống**:
+  - `logs/app.log`: Toàn bộ nhật ký hoạt động (INFO, WARN, ERROR, SUCCESS), tối ưu cho lệnh `tail -f logs/app.log`.
+  - `logs/error.log`: Chỉ lưu các lỗi kèm Stack trace chi tiết để tiện debug.
+  - `logs/daily/app-YYYY-MM-DD.log` & `logs/daily/error-YYYY-MM-DD.log`: Lưu trữ lịch sử theo từng ngày.
+- **Cơ chế xoá Log cũ tự động (Retention Policy: 60 ngày)**:
+  - Tự động chạy khi khởi động và định kỳ mỗi 24 giờ một lần.
+  - Tự động quét và xóa sạch các file log cũ hơn 60 ngày nhằm bảo vệ dung lượng lưu trữ của máy chủ/hosting.
+
