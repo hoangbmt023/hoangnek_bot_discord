@@ -14,15 +14,23 @@ Bot Discord được xây dựng bằng **Node.js** và thư viện **discord.js
   - Tự động nạp Sự kiện (Auto Event Loader) thông qua kế thừa `BaseEvent`.
   - Tách bạch rõ ràng giữa Business Logic (`services/`), Giao diện Embed (`utils/embedBuilder`), và Vòng đời bot (`core/BotClient`).
 
+- 🔄 **Quy trình CI/CD tự động (GitHub Actions -> cPanel Linux)**:
+  - Tự động chạy kiểm tra chất lượng & cú pháp code trên mọi Pull Request (Node 18/20/22).
+  - Tự động deploy, kéo code mới nhất và khởi động lại Bot trên cPanel khi merge vào `main`.
+
 ---
 
 ## 📁 Cấu trúc thư mục
 
 ```
 hoangnek_bot_discord/
+├── .github/workflows/        # CI/CD Workflows (GitHub Actions)
+│   ├── ci.yml                # CI: Kiểm tra cú pháp và bảo mật code
+│   └── cd-production.yml     # CD: Tự động deploy lên cPanel Linux khi merge main
 ├── docs/                     # Tài liệu hướng dẫn chi tiết
 │   ├── SETUP_GUIDE.md        # Hướng dẫn tạo Bot Discord & cấp quyền Intent
-│   └── ARCHITECTURE.md       # Giải thích kiến trúc SOLID & cách mở rộng
+│   ├── ARCHITECTURE.md       # Giải thích kiến trúc SOLID & cách mở rộng
+│   └── CICD_GUIDE.md         # Hướng dẫn cấu hình CI/CD và GitHub Secrets
 ├── src/
 │   ├── config/
 │   │   └── env.js            # Nạp và kiểm tra tính hợp lệ của biến môi trường
@@ -42,6 +50,7 @@ hoangnek_bot_discord/
 │   │   ├── embedBuilder.js   # Module chuyên tạo Embed Card Discord
 │   │   └── logger.js         # Hệ thống log màu sắc theo thời gian thực
 │   └── index.js              # Entrypoint khởi chạy ứng dụng
+├── .cpanel.yml               # Cấu hình cPanel Git Deployment native
 ├── .env.example              # Mẫu cấu hình môi trường
 ├── .env.development          # Cấu hình môi trường dev (đã được .gitignore)
 ├── .env.production           # Cấu hình môi trường prod (đã được .gitignore)
@@ -90,12 +99,19 @@ LEAVE_CHANNEL_ID=dien_id_kenh_tam_biet_hoac_de_trong
   npm start
   ```
 
+- **Kiểm tra cú pháp (CI Test)**:
+  ```bash
+  npm test
+  ```
+
 ---
 
 ## 📚 Tài liệu chi tiết
 
 - [Hướng dẫn thiết lập Bot Discord từ A-Z](docs/SETUP_GUIDE.md)
 - [Giải thích kiến trúc SOLID & Hướng dẫn mở rộng code](docs/ARCHITECTURE.md)
+- [Hướng dẫn thiết lập CI/CD & Deploy tự động lên cPanel Linux](docs/CICD_GUIDE.md)
+
 
 ---
 
