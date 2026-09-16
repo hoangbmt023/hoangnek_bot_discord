@@ -1,4 +1,4 @@
-name: CD - Auto Deploy to cPanel (100% Automated)
+name: CD - Sync Code to cPanel (FTP)
 
 on:
   push:
@@ -29,9 +29,9 @@ jobs:
       - name: 🧪 Run Tests & Syntax Validation
         run: npm test
 
-  # Bước 2: Tự động đưa toàn bộ mã nguồn vào thư mục cPanel
+  # Bước 2: Tự động đồng bộ các file mã nguồn thay đổi lên cPanel qua FTP
   deploy_to_cpanel:
-    name: 🚀 100% Auto-Deploy to cPanel
+    name: 🌐 Sync Code via FTP
     needs: ci_verification
     runs-on: ubuntu-latest
 
@@ -41,12 +41,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: 🔄 Create Restart Trigger for cPanel (Phusion Passenger)
-        run: |
-          mkdir -p tmp
-          touch tmp/restart.txt
-
-      - name: 🌐 Deploy Code Directly to cPanel Folder
+      - name: 🌐 Upload Changed Files to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER || secrets.CPANEL_SSH_HOST || 'gienphim.site' }}
@@ -68,21 +63,5 @@ jobs:
             *.log
             logs/**
 
-      - name: 📡 Trigger cPanel UAPI Deployment (If API Token exists)
-        run: |
-          CPANEL_HOST="${{ secrets.CPANEL_HOST || secrets.CPANEL_SSH_HOST || 'gienphim.site' }}"
-          CPANEL_USER="${{ secrets.CPANEL_USERNAME || secrets.CPANEL_SSH_USER || 'rccwxhmh' }}"
-          API_TOKEN="${{ secrets.CPANEL_API_TOKEN }}"
-          APP_PATH="/home/rccwxhmh/discord/hoangnek_bot_discord"
-          BRANCH="${{ github.ref_name }}"
-
-          if [ -n "$API_TOKEN" ]; then
-            echo "🚀 Đang kích hoạt cPanel UAPI deploy..."
-            curl -s -k -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
-              "https://$CPANEL_HOST:2083/execute/VersionControl/update?repository_root=$APP_PATH&branch=$BRANCH" || true
-            curl -s -k -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
-              "https://$CPANEL_HOST:2083/execute/VersionControlDeployment/create?repository_root=$APP_PATH" || true
-          fi
-
       - name: 🎉 Deployment Completed
-        run: echo "✅ [CI/CD] Đã tự động cập nhật toàn bộ file code vào thư mục discord/hoangnek_bot_discord và kích hoạt reload bot thành công 100%!"
+        run: echo "✅ [CI/CD] Đã đồng bộ toàn bộ file mã nguồn mới nhất lên hosting cPanel thành công!"
