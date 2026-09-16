@@ -23,15 +23,15 @@ jobs:
           node-version: 20.x
           cache: 'npm'
 
-      - name: 📦 Install Dependencies
+      - name: 📦 Install Dependencies (All)
         run: npm ci
 
       - name: 🧪 Run Tests & Syntax Validation
         run: npm test
 
-  # Bước 2: Tự động Deploy 100% qua FTP (Chạy được trên mọi hosting)
+  # Bước 2: Tự động Build Packages & Deploy 100% qua FTP (Bao gồm cả thư viện mới)
   deploy_cpanel_ftp:
-    name: 🚀 100% Auto-Deploy to cPanel via FTP
+    name: 🚀 100% Auto-Deploy with Dependencies
     needs: ci_verification
     runs-on: ubuntu-latest
 
@@ -39,14 +39,25 @@ jobs:
       - name: 📥 Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # Chỉ đồng bộ các file thay đổi để tốc độ siêu nhanh
+          fetch-depth: 2
+
+      - name: ⚙️ Setup Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: 📦 Build Production Dependencies on Linux
+        run: |
+          echo "📦 Đang cài đặt thư viện cho Production..."
+          npm ci --omit=dev
 
       - name: 🔄 Create Restart Trigger for cPanel (Phusion Passenger)
         run: |
           mkdir -p tmp
           touch tmp/restart.txt
 
-      - name: 🌐 Sync Files to cPanel via FTP
+      - name: 🌐 Sync Files & Dependencies to cPanel via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER || secrets.CPANEL_SSH_HOST }}
@@ -57,7 +68,6 @@ jobs:
           exclude: |
             **/.git*
             **/.git*/**
-            **/node_modules/**
             .env
             .env.development
             .env.production
@@ -70,4 +80,4 @@ jobs:
             logs/**
 
       - name: 🎉 Deployment Completed
-        run: echo "✅ [CI/CD] Đã tự động cập nhật code và khởi động lại Bot trên cPanel thành công 100%!"
+        run: echo "✅ [CI/CD] Đã tự động cập nhật code, cài đặt thư viện mới và khởi động lại Bot trên cPanel thành công 100%!"
