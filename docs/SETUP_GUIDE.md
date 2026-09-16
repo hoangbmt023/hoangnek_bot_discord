@@ -130,3 +130,23 @@ Nếu thành công, bạn sẽ thấy log:
 ```
 
 Hãy thử mời một tài khoản phụ vào server hoặc kick tài khoản phụ ra khỏi server để kiểm tra thông báo embed của bot!
+
+---
+
+## Bước 7: Xem Log Trực Tiếp (Live Stream Logs) Trên cPanel / VPS
+
+Khi Bot chạy ngầm (Background/Daemon) trên cPanel hoặc Server, bạn có thể mở Terminal và xem log trực tiếp mà không cần khởi động lại bot:
+
+1. **Xem toàn bộ log thời gian thực**:
+   ```bash
+   tail -f logs/app.log
+   ```
+2. **Xem riêng các thông báo lỗi (Error)**:
+   ```bash
+   tail -f logs/error.log
+   ```
+3. **Thoát khỏi màn hình xem log**:
+   - Nhấn phím `Ctrl + C` (lệnh này chỉ tắt màn hình xem log, bot vẫn chạy ngầm bình thường).
+
+> [!NOTE]
+> Hệ thống log được tự động phân loại theo ngày (`logs/daily/app-YYYY-MM-DD.log`) và **tự động xóa dọn dẹp các file log cũ hơn 60 ngày** để tiết kiệm dung lượng hosting.
