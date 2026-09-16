@@ -41,7 +41,7 @@ jobs:
           CPANEL_HOST="${{ secrets.CPANEL_HOST || secrets.CPANEL_SSH_HOST || 'gienphim.site' }}"
           CPANEL_USER="${{ secrets.CPANEL_USERNAME || secrets.CPANEL_SSH_USER || 'rccwxhmh' }}"
           API_TOKEN="${{ secrets.CPANEL_API_TOKEN }}"
-          REPO_PATH="${{ secrets.CPANEL_REPO_PATH || '/home/rccwxhmh/repositories/hoangnek_bot_discord' }}"
+          REPO_PATH="${{ secrets.CPANEL_REPO_PATH || secrets.CPANEL_APP_PATH || '/home/rccwxhmh/discord/hoangnek_bot_discord' }}"
           BRANCH="${{ github.ref_name }}"
 
           if [ -z "$API_TOKEN" ]; then
@@ -55,16 +55,21 @@ jobs:
 
           # 1. Gọi cPanel UAPI để cập nhật (git pull) từ nhánh hiện tại
           echo "📥 [1/2] Yêu cầu cPanel kéo code mới nhất từ GitHub..."
-          UPDATE_RES=$(curl -s -k -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
-            "https://$CPANEL_HOST:2083/execute/VersionControl/update?repository_root=$REPO_PATH&branch=$BRANCH")
+          UPDATE_RES=$(curl -s -k -G \
+            -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
+            "https://$CPANEL_HOST:2083/execute/VersionControl/update" \
+            --data-urlencode "repository_root=$REPO_PATH" \
+            --data-urlencode "branch=$BRANCH")
           
           echo "Phản hồi từ cPanel Update:"
           echo "$UPDATE_RES"
 
           # 2. Gọi cPanel UAPI để thực thi file .cpanel.yml (tự chạy npm install & reload bot trên hosting)
           echo "⚙️ [2/2] Yêu cầu cPanel thực thi .cpanel.yml (Tự chạy npm install và reload bot trên server)..."
-          DEPLOY_RES=$(curl -s -k -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
-            "https://$CPANEL_HOST:2083/execute/VersionControlDeployment/create?repository_root=$REPO_PATH")
+          DEPLOY_RES=$(curl -s -k -G \
+            -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
+            "https://$CPANEL_HOST:2083/execute/VersionControlDeployment/create" \
+            --data-urlencode "repository_root=$REPO_PATH")
 
           echo "Phản hồi từ cPanel Deploy:"
           echo "$DEPLOY_RES"
@@ -72,6 +77,9 @@ jobs:
           # Kiểm tra kết quả
           if echo "$DEPLOY_RES" | grep -q '"status":1'; then
             echo "🎉 [CI/CD] THÀNH CÔNG 100%: cPanel đã tự kéo code và tự chạy 'npm install' trên hosting thành công!"
+          elif echo "$UPDATE_RES" | grep -q '"status":0'; then
+            echo "❌ Lỗi khi cập nhật Git trên cPanel."
+            exit 1
           else
             echo "⚠️ cPanel đã nhận lệnh, vui lòng kiểm tra phản hồi ở trên."
           fi
