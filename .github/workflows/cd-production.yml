@@ -1,16 +1,16 @@
-name: CD - Deploy to cPanel via FTP (Production)
+name: CD - Auto Deploy to cPanel Linux (100% Automated)
 
 on:
   push:
     branches:
       - main
-      - test/cd-deploy # Kích hoạt CD test ngay khi push lên nhánh này
-  workflow_dispatch: # Cho phép bấm nút "Run workflow" để test deploy thủ công bất cứ lúc nào
+      - test/cd-deploy
+  workflow_dispatch:
 
 jobs:
-  # Bước 1: Kiểm thử cú pháp & chất lượng code trước khi deploy
+  # Bước 1: Chạy kiểm thử an toàn
   ci_verification:
-    name: 🧪 Verify CI on Trigger Branch
+    name: 🧪 Verify CI Checks
     runs-on: ubuntu-latest
 
     steps:
@@ -29,45 +29,55 @@ jobs:
       - name: 🧪 Run Tests & Syntax Validation
         run: npm test
 
-  # Bước 2: Tự động Deploy lên cPanel qua FTP (Không cần quyền SSH)
-  deploy_cpanel_ftp:
-    name: 🚀 Deploy to cPanel via FTP
+  # Bước 2: Tự động kết nối SSH và Deploy 100% lên cPanel
+  deploy_cpanel_ssh:
+    name: 🚀 100% Auto-Deploy to cPanel
     needs: ci_verification
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
+      - name: 🌐 Connect SSH and Execute Full Auto-Deployment
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          fetch-depth: 2 # Đồng bộ thông minh chỉ tải các file có thay đổi
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USER }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
+          password: ${{ secrets.CPANEL_SSH_PASSWORD }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 15149 }}
+          script: |
+            echo "🚀 [CI/CD] Bắt đầu tự động cập nhật code mới lên cPanel..."
+            
+            # 1. Đi vào đúng thư mục dự án trên cPanel
+            APP_DIR="${{ secrets.CPANEL_APP_PATH }}"
+            if [ -z "$APP_DIR" ]; then
+              APP_DIR="$HOME/discord/hoangnek_bot_discord"
+            fi
+            
+            echo "📁 Thư mục dự án: $APP_DIR"
+            cd "$APP_DIR" || exit 1
 
-      - name: 🔄 Create Restart Trigger for cPanel (Phusion Passenger)
-        run: |
-          mkdir -p tmp
-          touch tmp/restart.txt
+            # Khắc phục lỗi an toàn Git trên Linux
+            git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
 
-      - name: 🌐 Sync Files to cPanel via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          port: ${{ secrets.FTP_PORT || 21 }}
-          server-dir: ${{ secrets.FTP_SERVER_DIR || 'hoangnek_bot_discord/' }}
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            .env
-            .env.development
-            .env.production
-            .env.local
-            .env.*.local
-            .github/**
-            docs/**
-            README.md
-            *.log
-            logs/**
+            # 2. Đồng bộ code mới nhất từ GitHub
+            BRANCH="${{ github.ref_name }}"
+            echo "📥 Kéo mã nguồn mới nhất từ branch: $BRANCH..."
+            git fetch origin "$BRANCH"
+            git reset --hard "origin/$BRANCH"
 
-      - name: 📢 Deployment Status
-        run: echo "✅ [CI/CD] Đã triển khai và đồng bộ code lên cPanel qua FTP thành công!"
+            # 3. Cài đặt các thư viện mới (nếu có)
+            echo "📦 Cập nhật dependencies (npm install)..."
+            npm install --omit=dev
+
+            # 4. Kích hoạt cPanel khởi động lại Bot (Phusion Passenger Reload)
+            echo "🔄 Khởi động lại Bot trên cPanel..."
+            mkdir -p tmp
+            touch tmp/restart.txt
+
+            # Nếu dùng PM2
+            if command -v pm2 &> /dev/null; then
+              pm2 restart hoangnek-bot 2>/dev/null || pm2 restart all 2>/dev/null || true
+            fi
+
+            echo "🎉 [CI/CD] HOÀN TẤT TỰ ĐỘNG: Code đã lên Production và Bot đã được reload!"
