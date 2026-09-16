@@ -5,4 +5,6 @@ deployment:
     - /bin/cp -R src $DEPLOYPATH
     - /bin/cp package*.json $DEPLOYPATH
     - /bin/cp README.md $DEPLOYPATH 2>/dev/null || true
+    - export PATH=/home/rccwxhmh/nodevenv/discord/hoangnek_bot_discord/20/bin:$PATH
+    - cd $DEPLOYPATH && /home/rccwxhmh/nodevenv/discord/hoangnek_bot_discord/20/bin/npm install --omit=dev
     - cd $DEPLOYPATH && /bin/mkdir -p tmp && /bin/touch tmp/restart.txt
