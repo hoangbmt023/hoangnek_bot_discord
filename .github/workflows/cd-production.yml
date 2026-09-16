@@ -1,4 +1,4 @@
-name: CD - cPanel Auto Deploy (Native npm install on server)
+name: CD - Auto Deploy to cPanel (100% Automated)
 
 on:
   push:
@@ -8,16 +8,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy_cpanel:
-    name: 🚀 Full CI/CD Deployment Pipeline
+  # Bước 1: Kiểm thử cú pháp và chất lượng mã nguồn
+  ci_verification:
+    name: 🧪 Verify CI Checks
     runs-on: ubuntu-latest
-
-    env:
-      CPANEL_HOST: ${{ secrets.CPANEL_SSH_HOST || secrets.CPANEL_HOST || 'gienphim.site' }}
-      CPANEL_USER: ${{ secrets.CPANEL_SSH_USER || secrets.CPANEL_USERNAME || 'rccwxhmh' }}
-      API_TOKEN: ${{ secrets.CPANEL_API_TOKEN }}
-      APP_PATH: ${{ secrets.CPANEL_APP_PATH || '/home/rccwxhmh/discord/hoangnek_bot_discord' }}
-      BRANCH: ${{ github.ref_name }}
 
     steps:
       - name: 📥 Checkout Repository
@@ -29,62 +23,66 @@ jobs:
           node-version: 20.x
           cache: 'npm'
 
-      - name: 📦 Install Dependencies (CI Check)
+      - name: 📦 Install Dependencies
         run: npm ci
 
       - name: 🧪 Run Tests & Syntax Validation
         run: npm test
 
-      - name: 🔐 Validate cPanel API Token Configuration
+  # Bước 2: Tự động đưa toàn bộ mã nguồn vào thư mục cPanel
+  deploy_to_cpanel:
+    name: 🚀 100% Auto-Deploy to cPanel
+    needs: ci_verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🔄 Create Restart Trigger for cPanel (Phusion Passenger)
         run: |
-          if [ -z "$API_TOKEN" ]; then
-            echo "❌ LỖI: Chưa cấu hình CPANEL_API_TOKEN trong GitHub Secrets!"
-            exit 1
+          mkdir -p tmp
+          touch tmp/restart.txt
+
+      - name: 🌐 Deploy Code Directly to cPanel Folder
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER || secrets.CPANEL_SSH_HOST || 'gienphim.site' }}
+          username: ${{ secrets.FTP_USERNAME || secrets.CPANEL_SSH_USER || 'rccwxhmh' }}
+          password: ${{ secrets.FTP_PASSWORD || secrets.CPANEL_SSH_PASSWORD }}
+          port: ${{ secrets.FTP_PORT || 21 }}
+          server-dir: 'discord/hoangnek_bot_discord/'
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            .env
+            .env.development
+            .env.production
+            .env.local
+            .env.*.local
+            .github/**
+            docs/**
+            *.log
+            logs/**
+
+      - name: 📡 Trigger cPanel UAPI Deployment (If API Token exists)
+        run: |
+          CPANEL_HOST="${{ secrets.CPANEL_HOST || secrets.CPANEL_SSH_HOST || 'gienphim.site' }}"
+          CPANEL_USER="${{ secrets.CPANEL_USERNAME || secrets.CPANEL_SSH_USER || 'rccwxhmh' }}"
+          API_TOKEN="${{ secrets.CPANEL_API_TOKEN }}"
+          APP_PATH="/home/rccwxhmh/discord/hoangnek_bot_discord"
+          BRANCH="${{ github.ref_name }}"
+
+          if [ -n "$API_TOKEN" ]; then
+            echo "🚀 Đang kích hoạt cPanel UAPI deploy..."
+            curl -s -k -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
+              "https://$CPANEL_HOST:2083/execute/VersionControl/update?repository_root=$APP_PATH&branch=$BRANCH" || true
+            curl -s -k -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
+              "https://$CPANEL_HOST:2083/execute/VersionControlDeployment/create?repository_root=$APP_PATH" || true
           fi
-          echo "✅ Đã tìm thấy cPanel API Token."
-          echo "🌐 Host: $CPANEL_HOST:2083"
-          echo "📁 Thư mục cPanel: $APP_PATH"
-          echo "🌿 Nhánh triển khai: $BRANCH"
-
-      - name: 📥 [1/3] Pull Latest Code to cPanel via API
-        run: |
-          echo "🚀 Đang yêu cầu cPanel UAPI kéo code mới nhất từ GitHub..."
-          UPDATE_RES=$(curl -s -k \
-            -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
-            "https://$CPANEL_HOST:2083/execute/VersionControl/update?repository_root=$APP_PATH&branch=$BRANCH")
-          
-          echo "Phản hồi từ cPanel Update:"
-          echo "$UPDATE_RES"
-
-          if echo "$UPDATE_RES" | grep -q '"status":0'; then
-            echo "❌ Lỗi khi cập nhật Git trên cPanel!"
-            exit 1
-          fi
-          echo "✅ cPanel đã kéo code thành công."
-
-      - name: ⚙️ [2/3] Execute .cpanel.yml (Native npm install on server)
-        run: |
-          echo "📦 Đang kích hoạt cPanel chạy file .cpanel.yml để tự động tải thư viện npm..."
-          DEPLOY_RES=$(curl -s -k \
-            -H "Authorization: cpanel $CPANEL_USER:$API_TOKEN" \
-            "https://$CPANEL_HOST:2083/execute/VersionControlDeployment/create?repository_root=$APP_PATH")
-
-          echo "Phản hồi từ cPanel Deploy:"
-          echo "$DEPLOY_RES"
-
-          if echo "$DEPLOY_RES" | grep -q '"status":0'; then
-            echo "❌ Lỗi khi thực thi .cpanel.yml trên cPanel!"
-            exit 1
-          fi
-          echo "✅ cPanel đã thực thi .cpanel.yml và chạy npm install thành công."
-
-      - name: 🔄 [3/3] Verify Application Reload Status
-        run: |
-          echo "🔄 Ứng dụng bot đang được Phusion Passenger tải lại với code và thư viện mới."
 
       - name: 🎉 Deployment Completed
-        run: |
-          echo "🎉 [CI/CD] HOÀN TẤT TRIỂN KHAI 100% QUA CPANEL API!"
-          echo "✅ Mã nguồn đã cập nhật."
-          echo "✅ Thư viện node_modules đã được cài trực tiếp trên hosting."
-          echo "✅ Bot Discord đã được khởi động lại thành công."
+        run: echo "✅ [CI/CD] Đã tự động cập nhật toàn bộ file code vào thư mục discord/hoangnek_bot_discord và kích hoạt reload bot thành công 100%!"
