@@ -1,5 +1,8 @@
 ---
 deployment:
   tasks:
-    - /bin/mkdir -p tmp
-    - /bin/touch tmp/restart.txt
+    - export DEPLOYPATH=/home/rccwxhmh/discord/hoangnek_bot_discord/
+    - /bin/cp -R src $DEPLOYPATH
+    - /bin/cp package*.json $DEPLOYPATH
+    - /bin/cp README.md $DEPLOYPATH 2>/dev/null || true
+    - cd $DEPLOYPATH && /bin/mkdir -p tmp && /bin/touch tmp/restart.txt
