@@ -1,6 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/$USER/hoangnek_bot_discord/
-    - /bin/cp -R * $DEPLOYPATH
+    - export DEPLOYPATH=/home/$USER/discord/hoangnek_bot_discord/
+    - /bin/cp -R * $DEPLOYPATH 2>/dev/null || true
+    - cd $DEPLOYPATH && npm install --omit=dev 2>/dev/null || true
     - cd $DEPLOYPATH && /bin/mkdir -p tmp && /bin/touch tmp/restart.txt

@@ -1,88 +1,89 @@
-# 🔄 Hướng Dẫn Thiết Lập Quy Trình CI/CD Tự Động Triển Khai Lên cPanel Linux
+# 🔄 Hướng Dẫn Thiết Lập CI/CD Qua cPanel Git™ Version Control
 
-Tài liệu này mô tả chi tiết quy trình phát triển phần mềm chuẩn GitFlow, cách thức hoạt động của hệ thống CI/CD (GitHub Actions) và hướng dẫn cấu hình Secrets để tự động kéo code, cài đặt và khởi động lại Bot trên cPanel mỗi khi gộp code vào `main`.
+Tài liệu này hướng dẫn chi tiết cách kết hợp **GitHub Actions (CI)** và **cPanel Git™ Version Control (CD)** để tự động kiểm tra code, tự động kéo code về hosting, tự động cài thư viện `npm install` và tự động khởi động lại bot.
 
 ---
 
-## 🗺️ 1. Sơ đồ luồng làm việc (GitFlow & CI/CD Workflow)
+## 🗺️ 1. Sơ đồ luồng làm việc tự động (CI/CD)
 
 ```mermaid
 graph TD
-    A[Nhánh Feature: feature/*] -->|Tạo Pull Request| B(Nhánh develop)
-    B -->|CI chạy kiểm tra cú pháp & bảo mật| C{CI Kiểm Tra?}
-    C -->|❌ Thất bại| D[Chặn Merge / Sửa lỗi lại]
-    C -->|✅ Thành công| E[Merge vào develop]
+    A[Nhánh feature/*] -->|Tạo PR| B(Nhánh develop)
+    B -->|CI kiểm tra cú pháp & bảo mật| C{CI Kiểm Tra?}
+    C -->|❌ Fail| D[Chặn Merge]
+    C -->|✅ Pass| E[Merge develop]
     
-    E -->|Tạo Pull Request| F(Nhánh main - Production)
-    F -->|CI chạy kiểm tra trên Node 18/20/22| G{CI Kiểm Tra?}
-    G -->|❌ Thất bại| H[Khóa nút Merge / Không cho gộp]
-    G -->|✅ Thành công| I[Merge vào main]
+    E -->|Tạo PR| F(Nhánh main)
+    F -->|CI kiểm tra| G{CI Kiểm Tra?}
+    G -->|❌ Fail| H[Khóa nút Merge]
+    G -->|✅ Pass| I[Merge vào main]
     
-    I -->|CD Tự động kích hoạt| J[GitHub Actions kết nối SSH vào cPanel Linux]
-    J --> K[git fetch & git reset code mới nhất]
-    K --> L[npm install --omit=dev]
-    L --> M[touch tmp/restart.txt để reload Passenger/PM2]
-    M --> N[🚀 Production Cập Nhật Thành Công!]
+    I -->|CD kích hoạt Webhook| J[cPanel Git Version Control]
+    J --> K[git pull code mới nhất về cPanel]
+    K --> L[Tự động chạy .cpanel.yml]
+    L --> M[npm install --omit=dev]
+    M --> N[touch tmp/restart.txt]
+    N --> O[🚀 Bot tự động reload và Online!]
 ```
 
 ---
 
-## 🔐 2. Cấu hình GitHub Secrets (Bắt buộc cho CD Deploy)
+## 🛠️ 2. Hướng dẫn thiết lập trên cPanel (Từng bước chi tiết)
 
-Để GitHub Actions có thể tự động kết nối SSH và kéo code về cPanel, bạn cần thêm các thông số kết nối vào GitHub Repository:
-
-1. Truy cập vào Repository của bạn trên GitHub.
-2. Vào tab **Settings** -> Mục **Secrets and variables** (ở menu bên trái) -> Chọn **Actions**.
-3. Nhấn vào nút **New repository secret** và thêm lần lượt các Secret sau:
-
-| Tên Secret | Ý nghĩa & Giá trị | Ví dụ |
-| :--- | :--- | :--- |
-| `CPANEL_SSH_HOST` | Địa chỉ IP máy chủ hoặc Domain của hosting | `gienphim.site` hoặc `123.45.67.89` |
-| `CPANEL_SSH_USER` | Tên đăng nhập cPanel của bạn | `your_cpanel_username` |
-| `CPANEL_SSH_PASSWORD` | Mật khẩu tài khoản cPanel / SSH | `MatKhauCuaBan123@` |
-| `CPANEL_SSH_PORT` | Cổng kết nối SSH của hosting *(mặc định 22)* | `22` (hoặc cổng riêng do hosting cung cấp) |
-| `CPANEL_APP_PATH` | Đường dẫn thư mục chứa bot trên hosting | `/home/username/hoangnek_bot_discord` |
-
-> [!TIP]
-> Nếu hosting cPanel của bạn dùng **SSH Key** thay vì Password, bạn có thể tạo secret `CPANEL_SSH_KEY` và dán Private Key vào đó.
+### 🟢 Bước 1: Clone Repository vào cPanel
+1. Đăng nhập vào cPanel của bạn.
+2. Tìm mục **Files (Tệp)** -> Chọn **Git™ Version Control**.
+3. Nhấn nút **Create** (Tạo kho lưu trữ):
+   - **Clone a repository**: Bật công tắc này sang **ON**.
+   - **Clone URL**: Dán link GitHub của bạn:  
+     `https://github.com/hoangbmt023/hoangnek_bot_discord.git`  
+     *(Nếu repo Private, dùng dạng: `https://<GITHUB_TOKEN>@github.com/hoangbmt023/hoangnek_bot_discord.git`)*.
+   - **Repository Path**: Điền tên thư mục: `hoangnek_bot_discord`
+   - **Repository Name**: Điền: `hoangnek_bot_discord`
+4. Nhấn **Create** -> cPanel sẽ tải toàn bộ mã nguồn về.
 
 ---
 
-## 🛡️ 3. Thiết lập Branch Protection Rules (Bắt buộc CI Pass mới cho Merge)
-
-Để đảm bảo quy tắc **"CI Fail -> Không được merge, CI Pass -> Mới được merge"**, bạn cài đặt trên GitHub như sau:
-
-1. Trên GitHub Repo, vào **Settings** -> **Branches**.
-2. Nhấn nút **Add branch ruleset** (hoặc **Add rule**).
-3. **Branch name pattern**: Điền `main` (làm tương tự thêm 1 rule cho `develop`).
-4. Tích chọn các mục bảo vệ:
-   - ✅ **Require a pull request before merging** (Bắt buộc tạo PR, không cho push thẳng vào `main`).
-   - ✅ **Require status checks to pass before merging** (Bắt buộc CI phải Pass).
-   - Trong ô tìm kiếm kiểm tra (Status checks), tìm và chọn: `Syntax & Quality Test (Node 20.x)` (hoặc các job test của workflow CI).
-5. Nhấn **Save changes** (Lưu thay đổi).
+### 🟢 Bước 2: Lấy Webhook URL từ cPanel
+1. Trong danh sách repositories của **Git™ Version Control**, nhấn nút **Manage** bên cạnh `hoangnek_bot_discord`.
+2. Chuyển sang tab **Pull or Deploy** (hoặc tab **Webhook** tùy giao diện cPanel).
+3. Tìm mục **Webhook** -> **Copy đường dẫn Webhook URL** do cPanel cung cấp.  
+   *(Đường dẫn thường có dạng: `https://cpanel.domain.com:2083/cpanelapp/git/deploy.live.cgi?repo=hoangnek_bot_discord...`)*.
 
 ---
 
-## 🚀 4. Trải nghiệm quy trình thực tế
+### 🟢 Bước 3: Dán Webhook URL vào GitHub Secrets
+1. Mở GitHub Repository của bạn trên trình duyệt.
+2. Vào **Settings** -> **Secrets and variables** -> **Actions**.
+3. Nhấn **New repository secret**:
+   - **Name**: `CPANEL_DEPLOY_WEBHOOK_URL`
+   - **Secret**: Dán đường link Webhook URL vừa copy ở Bước 2.
+4. Nhấn **Add secret**.
 
-### Bước 1: Phát triển tính năng mới trên nhánh feature
-```bash
-git checkout develop
-git checkout -b feature/ten-tinh-nang-moi
-# Viết code và commit
-git push -u origin feature/ten-tinh-nang-moi
+---
+
+## ⚙️ 3. Cơ chế tự động chạy `.cpanel.yml`
+Khi cPanel nhận được tín hiệu Webhook, nó sẽ tự động chạy file [.cpanel.yml](file:///c:/File_Hoc/NodeJs/hoangnek_bot_discord/.cpanel.yml):
+
+```yaml
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/$USER/hoangnek_bot_discord/
+    - /bin/cp -R * $DEPLOYPATH
+    - cd $DEPLOYPATH && npm install --omit=dev 2>/dev/null || true
+    - cd $DEPLOYPATH && /bin/mkdir -p tmp && /bin/touch tmp/restart.txt
 ```
 
-### Bước 2: Tạo Pull Request vào `develop`
-- Lên GitHub tạo PR từ `feature/ten-tinh-nang-moi` vào `develop`.
-- GitHub Actions CI sẽ tự động chạy kiểm tra.
-- Nếu có lỗi cú pháp hoặc lộ file `.env`, CI báo đỏ ❌ và nút Merge bị khóa.
-- Khi CI báo xanh ✅, bạn nhấn **Merge pull request**.
+- **Bước 1**: Copy toàn bộ file code mới vào thư mục chạy ứng dụng.
+- **Bước 2**: Tự động chạy `npm install` cập nhật các package mới.
+- **Bước 3**: Tạo file `tmp/restart.txt` để Phusion Passenger trên cPanel reload lại Bot ngay lập tức.
+- **File `.env`**: Được bảo vệ an toàn 100%, không bị ghi đè hay mất cấu hình.
 
-### Bước 3: Đưa lên Production (`main`)
-- Tạo PR từ `develop` vào `main`.
-- CI tiếp tục kiểm tra chất lượng code trên `main`.
-- Sau khi bấm **Merge**:
-  - Workflow `cd-production.yml` sẽ tự động kích hoạt.
-  - SSH vào cPanel -> Kéo code mới nhất -> Cài đặt thư viện -> Khởi động lại bot.
-  - Toàn bộ quá trình diễn ra tự động trong vòng **10 - 20 giây**!
+---
+
+## 🚀 4. Trải nghiệm:
+Bây giờ mỗi khi bạn merge code vào `main` (hoặc push `test/cd-deploy`):
+1. **GitHub Actions** sẽ chạy kiểm tra CI cú pháp và logic.
+2. Sau khi Pass ✅, nó sẽ tự động ping Webhook sang cPanel.
+3. cPanel tự động kéo code, tải thư viện và restart Bot trong vòng 10 giây!
