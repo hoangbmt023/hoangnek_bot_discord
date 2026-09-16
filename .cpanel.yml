@@ -2,7 +2,9 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/rccwxhmh/discord/hoangnek_bot_discord/
-    - /bin/cp -R src $DEPLOYPATH
-    - /bin/cp package*.json $DEPLOYPATH
+    - export NODEPATH=/home/rccwxhmh/nodevenv/discord/hoangnek_bot_discord/20/bin
+    - /bin/cp -R src $DEPLOYPATH 2>/dev/null || true
+    - /bin/cp package*.json $DEPLOYPATH 2>/dev/null || true
     - /bin/cp README.md $DEPLOYPATH 2>/dev/null || true
+    - cd $DEPLOYPATH && $NODEPATH/npm install --omit=dev 2>/dev/null || true
     - cd $DEPLOYPATH && /bin/mkdir -p tmp && /bin/touch tmp/restart.txt
