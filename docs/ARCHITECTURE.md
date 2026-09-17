@@ -1,6 +1,6 @@
 # 🏛️ Kiến Trúc Hệ Thống & Hướng Dẫn Mở Rộng (SOLID & Clean Code)
 
-Tài liệu này giải thích chi tiết cách dự án áp dụng các nguyên lý thiết kế phần mềm **SOLID** và cách thêm các tính năng mới (Sự kiện, Slash Command, Service) một cách chuẩn mực.
+Tài liệu này giải thích chi tiết cách dự án áp dụng các nguyên lý thiết kế phần mềm **SOLID** và cách mở rộng các module (Sự kiện, Kiểm duyệt ngôn từ AI, Slash Command, Service) một cách chuẩn mực.
 
 ---
 
@@ -8,82 +8,58 @@ Tài liệu này giải thích chi tiết cách dự án áp dụng các nguyên
 
 ### 🔹 S - Single Responsibility Principle (Đơn trách nhiệm)
 Mỗi module/class chỉ chịu trách nhiệm cho một tác vụ duy nhất:
-- `src/config/env.js`: Chuyên trách nạp, chuẩn hóa và kiểm tra biến môi trường.
-- `src/utils/logger.js`: Chuyên trách in log chuẩn hóa với timestamp và màu sắc.
-- `src/utils/embedBuilder.js`: Chuyên trách tạo giao diện Embed Card (giao diện hiển thị tin nhắn).
-- `src/services/memberNotificationService.js`: Chuyên trách xử lý nghiệp vụ thông báo thành viên (tìm kênh, kiểm tra quyền, gửi thông báo).
-- `src/core/EventLoader.js`: Chuyên trách tự động quét và đăng ký sự kiện.
+- `src/config/env.js`: Nạp, chuẩn hóa và kiểm tra biến môi trường.
+- `src/config/moderation.js`: Cấu hình ngưỡng điểm cảnh cáo, thời gian phạt timeout, quyền miễn trừ kiểm duyệt.
+- `src/utils/logger.js`: In log chuẩn hóa ra console và ghi log xoay vòng file tự động.
+- `src/utils/embedBuilder.js`: Xây dựng các mẫu giao diện Embed Card (Welcome, Leave, Warning Moderation).
+- `src/services/memberNotificationService.js`: Xử lý nghiệp vụ thông báo thành viên ra vào.
+- `src/services/toxicity/IToxicityDetector.js`: Hợp đồng trừu tượng cho việc phân loại độc hại.
+- `src/services/toxicity/RuleBasedDetector.js`: Phân loại ngôn từ tiếng Việt nhanh (CLEAN / OFFENSIVE / HATE) bằng biểu thức chính quy & chuẩn hóa teencode.
+- `src/services/toxicity/AIModelDetector.js`: Tích hợp mô hình AI (PhoBERT / ViHSD) qua Transformers.js / ONNX.
+- `src/services/toxicity/HybridToxicityDetector.js`: Kết hợp rule-based và AI Model theo Strategy pattern.
+- `src/services/warningStore.js`: Quản lý điểm phạt, lịch sử vi phạm và cơ chế tự động hết hạn điểm sau 24h.
+- `src/services/moderationService.js`: Điều phối quy trình kiểm duyệt tin nhắn và thực thi hình phạt (Timeout, Kick, Ban).
+- `src/core/EventLoader.js`: Tự động quét và đăng ký sự kiện Discord.
 - `src/core/BotClient.js`: Quản lý vòng đời và kết nối Gateway của Bot.
 
 ### 🔹 O - Open/Closed Principle (Đóng - Mở)
 - Hệ thống **mở rộng cho các tính năng mới** nhưng **đóng cho việc sửa đổi code cốt lõi**.
-- Khi cần lắng nghe sự kiện Discord mới (ví dụ: `messageCreate`, `guildBanAdd`): Bạn chỉ cần tạo một file mới trong thư mục `src/events/` kế thừa `BaseEvent`. `EventLoader` sẽ tự động phát hiện và đăng ký mà bạn **không cần sửa một dòng code nào trong `BotClient.js` hay `EventLoader.js`**.
+- Thêm sự kiện mới (`src/events/`): Chỉ cần tạo file kế thừa `BaseEvent`. `EventLoader` sẽ tự động phát hiện và nạp mà không cần sửa `BotClient.js`.
+- Thêm engine phân loại ngôn ngữ mới: Chỉ cần tạo class kế thừa `IToxicityDetector` và cắm vào `ModerationService`.
 
 ### 🔹 L - Liskov Substitution Principle (Thay thế Liskov)
-- Mọi Event Handler đều kế thừa từ `BaseEvent` và tuân thủ hợp đồng: có `name`, `once` và phương thức `execute()`.
-- `EventLoader` có thể xử lý bất kỳ class con nào của `BaseEvent` một cách đồng nhất và không làm thay đổi tính đúng đắn của chương trình.
+- Mọi Event Handler đều kế thừa từ `BaseEvent` (`execute(message, client)`).
+- Mọi bộ phân loại (`RuleBasedDetector`, `AIModelDetector`, `HybridToxicityDetector`) đều kế thừa `IToxicityDetector` (`classify(text)`).
 
 ### 🔹 I - Interface Segregation Principle (Phân tách giao diện)
-- Các sự kiện và dịch vụ chỉ nhận đúng dữ liệu và phụ thuộc mà chúng cần (ví dụ `guildMemberAdd` chỉ nhận `member` và ủy thác cho service phù hợp).
+- Các sự kiện và dịch vụ chỉ nhận đúng dữ liệu và phụ thuộc mà chúng cần.
 
 ### 🔹 D - Dependency Inversion Principle (Đảo ngược phụ thuộc)
-- Logic nghiệp vụ thông báo (`MemberNotificationService`) được tách biệt hoàn toàn khỏi Discord Gateway Client.
-- Thay vì nhét toàn bộ code gửi tin nhắn vào trực tiếp file event, event chỉ đóng vai trò là "Trigger" chuyển tiếp dữ liệu sang tầng "Service".
+- `ModerationService` phụ thuộc vào abstraction `IToxicityDetector` và `WarningStore`, không phụ thuộc trực tiếp vào cài đặt cụ thể.
 
 ---
 
-## 2. Hướng dẫn mở rộng dự án
+## 2. Hệ thống Lọc từ ngữ độc hại & Hate Speech 3 Nhãn (ViHSD Moderation)
 
-### 🎯 Cách 1: Thêm một sự kiện mới (Event Handler)
-Ví dụ bạn muốn lắng nghe tin nhắn chat (`messageCreate`):
-
-1. Tạo file mới `src/events/guild/messageCreate.js`:
-```javascript
-const { Events } = require('discord.js');
-const BaseEvent = require('../BaseEvent');
-const logger = require('../../utils/logger');
-
-class MessageCreateEvent extends BaseEvent {
-  constructor() {
-    super(Events.MessageCreate, false);
-  }
-
-  /**
-   * @param {import('discord.js').Message} message
-   */
-  async execute(message) {
-    // Bỏ qua tin nhắn từ Bot
-    if (message.author.bot) return;
-
-    logger.debug(`Tin nhắn từ ${message.author.tag}: ${message.content}`);
-
-    if (message.content === 'ping') {
-      await message.reply('Pong! 🏓');
-    }
-  }
-}
-
-module.exports = MessageCreateEvent;
+```mermaid
+flowchart TD
+    A[Sự kiện MessageCreate] --> B[Kiểm tra: Bỏ qua Bot, Webhook & Admin]
+    B --> C[ModerationService]
+    C --> D[HybridToxicityDetector]
+    D --> E{Phân tích kết quả}
+    
+    E -->|CLEAN| F[Hợp lệ - Cho qua]
+    E -->|OFFENSIVE (+1)| G[Xóa tin nhắn & Tăng điểm Cảnh cáo]
+    E -->|HATE (+2)| G
+    
+    G --> H[WarningStore: Quản lý điểm tích lũy]
+    H --> I{Kiểm tra Ngưỡng phạt}
+    
+    I -->|1 - 2 cảnh cáo| J[Gửi Embed cảnh cáo vi phạm]
+    I -->|>= 3 cảnh cáo| K[Cảnh cáo + Timeout 10 phút]
+    I -->|>= 5 cảnh cáo| L[Kick khỏi Server]
+    I -->|>= 7 cảnh cáo| M[Ban vĩnh viễn khỏi Server]
 ```
-2. Khởi động lại bot. `EventLoader` sẽ tự động nạp file này!
-
----
-
-### 🎯 Cách 2: Thêm một Service mới
-Khi bot có thêm các chức năng phức tạp (ví dụ: Quản lý điểm kinh nghiệm / Leveling, Kiểm duyệt từ ngữ / Auto Mod):
-
-1. Tạo file trong `src/services/` (ví dụ `src/services/levelingService.js`).
-2. Viết class xử lý logic nghiệp vụ và export singleton hoặc class instance.
-3. Gọi service này từ các Event tương ứng.
-
----
-
-### 🎯 Cách 3: Nâng cấp Slash Commands (Lệnh gạch chéo `/`)
-Để thêm hệ thống Slash Commands trong tương lai:
-1. Tạo thư mục `src/commands/`.
-2. Tạo `BaseCommand.js` (gồm `data` từ `SlashCommandBuilder` và phương thức `execute(interaction)`).
-3. Tạo `CommandLoader.js` trong `src/core/` tương tự `EventLoader.js` để tự động nạp lệnh và đăng ký qua Discord REST API.
-4. Bắt sự kiện `Events.InteractionCreate` để điều phối lệnh.
 
 ---
 
@@ -97,4 +73,3 @@ Dự án sử dụng module `src/utils/logger.js` được thiết kế tối ư
 - **Cơ chế xoá Log cũ tự động (Retention Policy: 60 ngày)**:
   - Tự động chạy khi khởi động và định kỳ mỗi 24 giờ một lần.
   - Tự động quét và xóa sạch các file log cũ hơn 60 ngày nhằm bảo vệ dung lượng lưu trữ của máy chủ/hosting.
-

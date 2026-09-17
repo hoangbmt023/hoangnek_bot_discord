@@ -1,5 +1,6 @@
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const { config } = require('../config/env');
+const guildSettingsService = require('./guildSettingsService');
 const EmbedBuilderUtility = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
 
@@ -96,6 +97,12 @@ class MemberNotificationService {
   async handleMemberJoin(member) {
     try {
       const { guild, user } = member;
+      // Kiểm tra tính năng chào mừng có đang bật trong Server không
+      if (!guildSettingsService.isFeatureEnabled(guild.id, 'welcome')) {
+        logger.debug(`Tính năng chào mừng đang TẮT trong Server "${guild.name}", bỏ qua.`);
+        return;
+      }
+
       logger.info(`Thành viên mới tham gia server "${guild.name}": ${user.tag} (${user.id})`);
 
       const channel = this.resolveNotificationChannel(guild, 'welcome');
@@ -125,6 +132,12 @@ class MemberNotificationService {
   async handleMemberLeave(member) {
     try {
       const { guild, user } = member;
+      // Kiểm tra tính năng thông báo rời đi có đang bật trong Server không
+      if (!guildSettingsService.isFeatureEnabled(guild.id, 'leave')) {
+        logger.debug(`Tính năng tạm biệt đang TẮT trong Server "${guild.name}", bỏ qua.`);
+        return;
+      }
+
       logger.info(`Thành viên đã rời khỏi server "${guild.name}": ${user.tag} (${user.id})`);
 
       const channel = this.resolveNotificationChannel(guild, 'leave');
