@@ -12,17 +12,18 @@ Tài liệu này hướng dẫn chi tiết cách cấu hình **GitHub Actions (C
 
 ---
 
-## 🔑 2. Cấu hình GitHub Secrets (Khớp chính xác với cPanel)
+## 🔑 2. Cấu hình GitHub Secrets
 
 Truy cập: **GitHub Repository** ➔ **Settings** ➔ **Secrets and variables** ➔ **Actions** ➔ **New repository secret**:
 
-| Tên Secret | Ý nghĩa / Giá trị mẫu |
-| :--- | :--- |
-| `CPANEL_SSH_HOST` | IP máy chủ hoặc tên miền cPanel (VD: `103.xxx.xxx.xxx` hoặc `server.yourdomain.com`) |
-| `CPANEL_SSH_USER` | Tên tài khoản cPanel (VD: `mtopmqqm`) |
-| `CPANEL_SSH_PASSWORD` | Mật khẩu tài khoản cPanel / SSH |
-| `CPANEL_SSH_PORT` | Cổng SSH (thường là `22` hoặc cổng riêng do nhà cung cấp hosting cấp) |
-| `CPANEL_APP_PATH` | Đường dẫn thư mục mã nguồn bot trên cPanel: `/home/mtopmqqm/bot/hoangnek_bot_discord` |
+| Tên Secret | Ý nghĩa / Giá trị mẫu | Bắt buộc |
+| :--- | :--- | :---: |
+| `CPANEL_SSH_HOST` | IP máy chủ hoặc tên miền cPanel (VD: `103.xxx.xxx.xxx` hoặc `server.yourdomain.com`) | ✅ |
+| `CPANEL_SSH_USER` | Tên tài khoản cPanel (VD: `mtopmqqm`) | ✅ |
+| `CPANEL_SSH_PASSWORD` | Mật khẩu tài khoản cPanel / SSH | ✅ |
+| `CPANEL_SSH_PORT` | Cổng SSH (thường là `22` hoặc cổng riêng do hosting cấp) | 🔘 |
+| `CPANEL_APP_PATH` | Đường dẫn thư mục mã nguồn bot trên cPanel: `/home/mtopmqqm/bot/hoangnek_bot_discord` | ✅ |
+| `CPANEL_ACTIVATE_CMD` *(Tùy chọn)* | Lệnh kích hoạt cPanel cung cấp: `source /home/mtopmqqm/nodevenv/bot/hoangnek_bot_discord/18/bin/activate && cd /home/mtopmqqm/bot/hoangnek_bot_discord` | 🔘 |
 
 ---
 
@@ -31,14 +32,11 @@ Truy cập: **GitHub Repository** ➔ **Settings** ➔ **Secrets and variables**
 ```mermaid
 flowchart TD
     A[Push test/cd-deploy HOẶC Merge PR vào main] --> B[CI: Kiểm tra cú pháp JavaScript]
-    B -->|✅ Pass| C[Kết nối SSH vào cPanel]
-    C --> D[Kích hoạt nodevenv & Dừng tiến trình Bot cũ]
+    B -->|✅ Pass| C[SSH vào cPanel]
+    C --> D[cd ~ rồi chạy lệnh kích hoạt môi trường nodevenv & Dừng bot cũ]
     D --> E[Đồng bộ các file mã nguồn mới vào CPANEL_APP_PATH]
-    E --> F[Kích hoạt nodevenv & cd vào CPANEL_APP_PATH]
+    E --> F[cd ~ rồi chạy lệnh kích hoạt nodevenv && cd vào CPANEL_APP_PATH]
     F --> G[Chạy npm i --omit=dev]
     G --> H[Khởi chạy nohup npm start > bot.log 2>&1 &]
     H --> I[🚀 Bot Online!]
 ```
-
-- **Môi trường ảo Node.js**: Tự động nhận diện và `source /home/mtopmqqm/nodevenv/bot/hoangnek_bot_discord/18/bin/activate` để sử dụng đúng phiên bản Node/NPM của cPanel.
-- **Bảo mật `.env`**: Pipeline bỏ qua file `.env`, không ghi đè cấu hình token trên máy chủ.

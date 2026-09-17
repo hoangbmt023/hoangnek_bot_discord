@@ -66,9 +66,16 @@ jobs:
           port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
           script: |
             set +e
-            echo "🔍 Kích hoạt môi trường Node cPanel..."
-            if [ -f "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" ]; then
-              source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate"
+            echo "🏠 Thoát về thư mục chính (cd ~)..."
+            cd ~
+
+            echo "🔍 Kích hoạt môi trường và vào thư mục bot..."
+            CPANEL_CMD="${{ secrets.CPANEL_ACTIVATE_CMD }}"
+            if [ -n "$CPANEL_CMD" ]; then
+              eval "$CPANEL_CMD"
+            else
+              source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" 2>/dev/null || true
+              cd "${{ secrets.CPANEL_APP_PATH }}" 2>/dev/null || true
             fi
 
             echo "🛑 Đang kiểm tra và dừng tiến trình Bot cũ..."
@@ -106,13 +113,16 @@ jobs:
           port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
           script: |
             set +e
-            echo "🔍 Kích hoạt môi trường ảo Node.js cPanel (nodevenv)..."
-            if [ -f "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" ]; then
-              source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate"
-            fi
+            echo "🏠 Thoát về thư mục chính (cd ~)..."
+            cd ~
 
-            echo "📂 Chuyển tới thư mục ứng dụng..."
-            cd "${{ secrets.CPANEL_APP_PATH }}" || exit 1
+            echo "🔍 Kích hoạt môi trường ảo Node.js cPanel và chuyển vào thư mục Bot..."
+            CPANEL_CMD="${{ secrets.CPANEL_ACTIVATE_CMD }}"
+            if [ -n "$CPANEL_CMD" ]; then
+              eval "$CPANEL_CMD"
+            else
+              source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" && cd "${{ secrets.CPANEL_APP_PATH }}"
+            fi
 
             echo "📍 Đường dẫn hiện tại: $(pwd)"
             echo "🟢 Node version: $(node -v 2>/dev/null || echo 'N/A')"
