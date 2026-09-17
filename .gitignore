@@ -21,3 +21,8 @@ logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Application Data & Local Storage (Không đẩy lên Git để giữ cài đặt server)
+data/
+data/*.json
+

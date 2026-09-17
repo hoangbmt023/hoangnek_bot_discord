@@ -1,6 +1,7 @@
 const { Events, ActivityType } = require('discord.js');
 const BaseEvent = require('../BaseEvent');
 const logger = require('../../utils/logger');
+const { registerSlashCommands } = require('../../commands/slashCommands');
 
 /**
  * ReadyEvent
@@ -22,12 +23,15 @@ class ReadyEvent extends BaseEvent {
     client.user.setPresence({
       activities: [
         {
-          name: 'thành viên mới | /help',
+          name: '/help để xem lệnh',
           type: ActivityType.Watching,
         },
       ],
       status: 'online',
     });
+
+    // Tự động đăng ký và đồng bộ Slash Commands
+    await registerSlashCommands(client);
   }
 }
 

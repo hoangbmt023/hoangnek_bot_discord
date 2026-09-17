@@ -14,6 +14,9 @@ class BotClient {
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers, // Cần thiết để bắt sự kiện guildMemberAdd / guildMemberRemove
         GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent, // Cần thiết để đọc nội dung tin nhắn phục vụ lọc từ ngữ độc hại
+        GatewayIntentBits.AutoModerationConfiguration, // Cần thiết để quản lý quy tắc AutoMod
+        GatewayIntentBits.AutoModerationExecution, // Cần thiết để nhận sự kiện chặn tin nhắn AutoMod
       ],
       partials: [
         Partials.GuildMember,
