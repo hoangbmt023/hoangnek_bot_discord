@@ -1,6 +1,0 @@
----
-deployment:
-  tasks:
-    - export DEPLOYPATH=/home/$USER/hoangnek_bot_discord/
-    - /bin/cp -R * $DEPLOYPATH
-    - cd $DEPLOYPATH && /bin/mkdir -p tmp && /bin/touch tmp/restart.txt
