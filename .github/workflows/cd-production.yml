@@ -132,7 +132,7 @@ jobs:
             npm i --omit=dev
 
             echo "🚀 Khởi động Bot (npm start)..."
-            nohup npm start &
+            nohup npm start > /dev/null 2>&1 < /dev/null &
 
             sleep 3
             echo "🔍 Kiểm tra trạng thái tiến trình Bot:"
