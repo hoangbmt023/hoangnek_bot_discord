@@ -65,20 +65,26 @@ jobs:
           password: ${{ secrets.CPANEL_SSH_PASSWORD }}
           port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
           script: |
-            echo "🔍 Kiểm tra và kích hoạt môi trường Node cPanel..."
+            set +e
+            echo "🔍 Kích hoạt môi trường Node cPanel..."
             if [ -f "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" ]; then
               source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate"
-            elif [ -d "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv" ]; then
-              ACTIVATE_FILE=$(find "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv" -name "activate" 2>/dev/null | head -n 1)
-              if [ -n "$ACTIVATE_FILE" ] && [ -f "$ACTIVATE_FILE" ]; then
-                source "$ACTIVATE_FILE"
-              fi
             fi
 
-            echo "🛑 Đang dừng tiến trình Bot cũ..."
-            pkill -f "node.*src/index.js" || true
-            pkill -f "npm.*start" || true
+            echo "🛑 Đang kiểm tra và dừng tiến trình Bot cũ..."
+            PIDS=$(pgrep -f "[s]rc/index.js" 2>/dev/null)
+            if [ -n "$PIDS" ]; then
+              echo "Tìm thấy PID: $PIDS, đang dừng..."
+              for pid in $PIDS; do
+                kill -9 "$pid" 2>/dev/null
+              done
+              echo "✅ Đã dừng tiến trình cũ thành công."
+            else
+              echo "ℹ️ Không có tiến trình Bot cũ nào đang chạy."
+            fi
+
             mkdir -p "${{ secrets.CPANEL_APP_PATH }}"
+            exit 0
 
       - name: 🔄 Đồng bộ các file mã nguồn mới lên cPanel
         uses: appleboy/scp-action@v0.1.7
@@ -99,18 +105,14 @@ jobs:
           password: ${{ secrets.CPANEL_SSH_PASSWORD }}
           port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
           script: |
+            set +e
             echo "🔍 Kích hoạt môi trường ảo Node.js cPanel (nodevenv)..."
             if [ -f "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" ]; then
               source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate"
-            elif [ -d "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv" ]; then
-              ACTIVATE_FILE=$(find "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv" -name "activate" 2>/dev/null | head -n 1)
-              if [ -n "$ACTIVATE_FILE" ] && [ -f "$ACTIVATE_FILE" ]; then
-                source "$ACTIVATE_FILE"
-              fi
             fi
 
             echo "📂 Chuyển tới thư mục ứng dụng..."
-            cd "${{ secrets.CPANEL_APP_PATH }}" || { echo "❌ Lỗi: Không thể cd tới ${{ secrets.CPANEL_APP_PATH }}"; exit 1; }
+            cd "${{ secrets.CPANEL_APP_PATH }}" || exit 1
 
             echo "📍 Đường dẫn hiện tại: $(pwd)"
             echo "🟢 Node version: $(node -v 2>/dev/null || echo 'N/A')"
@@ -120,9 +122,10 @@ jobs:
             npm i --omit=dev
 
             echo "🚀 Khởi động Bot (npm start)..."
-            nohup npm start > bot.log 2>&1 &
+            nohup npm start </dev/null >bot.log 2>&1 &
 
             sleep 3
             echo "🔍 Kiểm tra trạng thái tiến trình Bot:"
-            pgrep -fl "src/index.js" || echo "⚠️ Cảnh báo: Vui lòng kiểm tra lại log trong bot.log"
+            pgrep -fl "[s]rc/index.js" || echo "⚠️ Cảnh báo: Vui lòng kiểm tra lại log trong bot.log"
             echo "🎉 Deploy thành công!"
+            exit 0
