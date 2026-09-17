@@ -1,89 +1,44 @@
-# 🔄 Hướng Dẫn Thiết Lập CI/CD Qua cPanel Git™ Version Control
+# 🔄 Hướng Dẫn Thiết Lập CI/CD Tự Động Qua SSH cPanel
 
-Tài liệu này hướng dẫn chi tiết cách kết hợp **GitHub Actions (CI)** và **cPanel Git™ Version Control (CD)** để tự động kiểm tra code, tự động kéo code về hosting, tự động cài thư viện `npm install` và tự động khởi động lại bot.
+Tài liệu này hướng dẫn chi tiết cách cấu hình **GitHub Actions (CI/CD)** để tự động kiểm tra code và deploy lên hosting cPanel thông qua giao thức SSH với môi trường Node.js Selector (`nodevenv`).
 
 ---
 
-## 🗺️ 1. Sơ đồ luồng làm việc tự động (CI/CD)
+## 🗺️ 1. Cơ chế kích hoạt (Trigger Rules)
+
+- **Nhánh `test/cd-deploy`**: Khi `git push` trực tiếp lên nhánh `test/cd-deploy`, GitHub Actions sẽ chạy CI kiểm tra lỗi và **tự động deploy để test**.
+- **Nhánh `main`**: **Không kích hoạt khi push trực tiếp**. Chỉ kích hoạt CD khi **Gộp (Merge Pull Request)** từ nhánh khác vào `main`.
+- **Thủ công**: Có thể bấm **Run workflow** trên GitHub Actions khi cần.
+
+---
+
+## 🔑 2. Cấu hình GitHub Secrets (Khớp chính xác với cPanel)
+
+Truy cập: **GitHub Repository** ➔ **Settings** ➔ **Secrets and variables** ➔ **Actions** ➔ **New repository secret**:
+
+| Tên Secret | Ý nghĩa / Giá trị mẫu |
+| :--- | :--- |
+| `CPANEL_SSH_HOST` | IP máy chủ hoặc tên miền cPanel (VD: `103.xxx.xxx.xxx` hoặc `server.yourdomain.com`) |
+| `CPANEL_SSH_USER` | Tên tài khoản cPanel (VD: `mtopmqqm`) |
+| `CPANEL_SSH_PASSWORD` | Mật khẩu tài khoản cPanel / SSH |
+| `CPANEL_SSH_PORT` | Cổng SSH (thường là `22` hoặc cổng riêng do nhà cung cấp hosting cấp) |
+| `CPANEL_APP_PATH` | Đường dẫn thư mục mã nguồn bot trên cPanel: `/home/mtopmqqm/bot/hoangnek_bot_discord` |
+
+---
+
+## ⚙️ 3. Quy trình tự động thực thi
 
 ```mermaid
-graph TD
-    A[Nhánh feature/*] -->|Tạo PR| B(Nhánh develop)
-    B -->|CI kiểm tra cú pháp & bảo mật| C{CI Kiểm Tra?}
-    C -->|❌ Fail| D[Chặn Merge]
-    C -->|✅ Pass| E[Merge develop]
-    
-    E -->|Tạo PR| F(Nhánh main)
-    F -->|CI kiểm tra| G{CI Kiểm Tra?}
-    G -->|❌ Fail| H[Khóa nút Merge]
-    G -->|✅ Pass| I[Merge vào main]
-    
-    I -->|CD kích hoạt Webhook| J[cPanel Git Version Control]
-    J --> K[git pull code mới nhất về cPanel]
-    K --> L[Tự động chạy .cpanel.yml]
-    L --> M[npm install --omit=dev]
-    M --> N[touch tmp/restart.txt]
-    N --> O[🚀 Bot tự động reload và Online!]
+flowchart TD
+    A[Push test/cd-deploy HOẶC Merge PR vào main] --> B[CI: Kiểm tra cú pháp JavaScript]
+    B -->|✅ Pass| C[Kết nối SSH vào cPanel]
+    C --> D[Kích hoạt nodevenv & Dừng tiến trình Bot cũ]
+    D --> E[Đồng bộ các file mã nguồn mới vào CPANEL_APP_PATH]
+    E --> F[Kích hoạt nodevenv & cd vào CPANEL_APP_PATH]
+    F --> G[Chạy npm i --omit=dev]
+    G --> H[Khởi chạy nohup npm start > bot.log 2>&1 &]
+    H --> I[🚀 Bot Online!]
 ```
 
----
-
-## 🛠️ 2. Hướng dẫn thiết lập trên cPanel (Từng bước chi tiết)
-
-### 🟢 Bước 1: Clone Repository vào cPanel
-1. Đăng nhập vào cPanel của bạn.
-2. Tìm mục **Files (Tệp)** -> Chọn **Git™ Version Control**.
-3. Nhấn nút **Create** (Tạo kho lưu trữ):
-   - **Clone a repository**: Bật công tắc này sang **ON**.
-   - **Clone URL**: Dán link GitHub của bạn:  
-     `https://github.com/hoangbmt023/hoangnek_bot_discord.git`  
-     *(Nếu repo Private, dùng dạng: `https://<GITHUB_TOKEN>@github.com/hoangbmt023/hoangnek_bot_discord.git`)*.
-   - **Repository Path**: Điền tên thư mục: `hoangnek_bot_discord`
-   - **Repository Name**: Điền: `hoangnek_bot_discord`
-4. Nhấn **Create** -> cPanel sẽ tải toàn bộ mã nguồn về.
-
----
-
-### 🟢 Bước 2: Lấy Webhook URL từ cPanel
-1. Trong danh sách repositories của **Git™ Version Control**, nhấn nút **Manage** bên cạnh `hoangnek_bot_discord`.
-2. Chuyển sang tab **Pull or Deploy** (hoặc tab **Webhook** tùy giao diện cPanel).
-3. Tìm mục **Webhook** -> **Copy đường dẫn Webhook URL** do cPanel cung cấp.  
-   *(Đường dẫn thường có dạng: `https://cpanel.domain.com:2083/cpanelapp/git/deploy.live.cgi?repo=hoangnek_bot_discord...`)*.
-
----
-
-### 🟢 Bước 3: Dán Webhook URL vào GitHub Secrets
-1. Mở GitHub Repository của bạn trên trình duyệt.
-2. Vào **Settings** -> **Secrets and variables** -> **Actions**.
-3. Nhấn **New repository secret**:
-   - **Name**: `CPANEL_DEPLOY_WEBHOOK_URL`
-   - **Secret**: Dán đường link Webhook URL vừa copy ở Bước 2.
-4. Nhấn **Add secret**.
-
----
-
-## ⚙️ 3. Cơ chế tự động chạy `.cpanel.yml`
-Khi cPanel nhận được tín hiệu Webhook, nó sẽ tự động chạy file [.cpanel.yml](file:///c:/File_Hoc/NodeJs/hoangnek_bot_discord/.cpanel.yml):
-
-```yaml
----
-deployment:
-  tasks:
-    - export DEPLOYPATH=/home/$USER/hoangnek_bot_discord/
-    - /bin/cp -R * $DEPLOYPATH
-    - cd $DEPLOYPATH && npm install --omit=dev 2>/dev/null || true
-    - cd $DEPLOYPATH && /bin/mkdir -p tmp && /bin/touch tmp/restart.txt
-```
-
-- **Bước 1**: Copy toàn bộ file code mới vào thư mục chạy ứng dụng.
-- **Bước 2**: Tự động chạy `npm install` cập nhật các package mới.
-- **Bước 3**: Tạo file `tmp/restart.txt` để Phusion Passenger trên cPanel reload lại Bot ngay lập tức.
-- **File `.env`**: Được bảo vệ an toàn 100%, không bị ghi đè hay mất cấu hình.
-
----
-
-## 🚀 4. Trải nghiệm:
-Bây giờ mỗi khi bạn merge code vào `main` (hoặc push `test/cd-deploy`):
-1. **GitHub Actions** sẽ chạy kiểm tra CI cú pháp và logic.
-2. Sau khi Pass ✅, nó sẽ tự động ping Webhook sang cPanel.
-3. cPanel tự động kéo code, tải thư viện và restart Bot trong vòng 10 giây!
+- **Môi trường ảo Node.js**: Tự động nhận diện và `source /home/mtopmqqm/nodevenv/bot/hoangnek_bot_discord/18/bin/activate` để sử dụng đúng phiên bản Node/NPM của cPanel.
+- **Bảo mật `.env`**: Pipeline bỏ qua file `.env`, không ghi đè cấu hình token trên máy chủ.
