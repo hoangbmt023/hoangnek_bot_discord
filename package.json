@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node --disable-wasm-trap-handler src/index.js",
+    "start": "node src/index.js",
     "dev": "node --env-file=.env.development src/index.js",
     "test": "node --check src/index.js && node --check src/config/env.js && node --check src/core/BotClient.js && node --check src/core/EventLoader.js && node --check src/services/memberNotificationService.js && node --check src/utils/embedBuilder.js && node --check src/utils/logger.js && node -e \"console.log('✅ CI: All JavaScript syntax checks passed successfully!')\""
   },

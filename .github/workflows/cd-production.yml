@@ -132,10 +132,10 @@ jobs:
             npm i --omit=dev
 
             echo "🚀 Khởi động Bot (npm start)..."
-            nohup npm start </dev/null >bot.log 2>&1 &
+            nohup npm start &
 
             sleep 3
             echo "🔍 Kiểm tra trạng thái tiến trình Bot:"
-            pgrep -fl "[s]rc/index.js" || echo "⚠️ Cảnh báo: Vui lòng kiểm tra lại log trong bot.log"
+            pgrep -fl "[s]rc/index.js" || echo "⚠️ Cảnh báo: Vui lòng kiểm tra lại log trong logs/app.log"
             echo "🎉 Deploy thành công!"
             exit 0

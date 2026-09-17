@@ -37,6 +37,6 @@ flowchart TD
     D --> E[Đồng bộ các file mã nguồn mới vào CPANEL_APP_PATH]
     E --> F[cd ~ rồi chạy lệnh kích hoạt nodevenv && cd vào CPANEL_APP_PATH]
     F --> G[Chạy npm i --omit=dev]
-    G --> H[Khởi chạy nohup npm start > bot.log 2>&1 &]
-    H --> I[🚀 Bot Online!]
+    G --> H[Khởi chạy nohup npm start &]
+    H --> I[🚀 Bot Online! - Theo dõi log tại logs/app.log]
 ```
