@@ -1,0 +1,45 @@
+name: CI - Code Quality & Syntax Check
+
+on:
+  push:
+    branches:
+      - '**' # Chạy CI ngay khi push lên bất kỳ nhánh nào (kể cả feature/*)
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công trên GitHub Actions tab
+
+jobs:
+  test:
+    name: Syntax & Quality Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🛡️ Security Check (Ensure secrets are not tracked)
+        run: |
+          if git ls-files | grep -E '^\.env(\..+)?$' | grep -v '\.env\.example$'; then
+            echo "❌ ERROR: Detected committed .env files containing secrets!"
+            exit 1
+          else
+            echo "✅ Security Check Passed: No sensitive .env files found in git tree."
+          fi
+
+      - name: 🧪 Run Code & Syntax Checks
+        run: npm test

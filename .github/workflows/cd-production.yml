@@ -1,0 +1,141 @@
+name: CI/CD Deployment Pipeline
+
+on:
+  # Kích hoạt khi push trực tiếp lên nhánh test/cd-deploy
+  push:
+    branches:
+      - test/cd-deploy
+
+  # Kích hoạt khi gộp (Merge Pull Request) vào nhánh main (không cho push trực tiếp lên main)
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+  # Cho phép kích hoạt thủ công từ giao diện GitHub Actions nếu cần
+  workflow_dispatch:
+
+jobs:
+  # ==========================================
+  # BƯỚC 1: CI - KIỂM TRA LỖI CÚ PHÁP VÀ LOGIC
+  # ==========================================
+  test:
+    name: 🧪 Run Automated Tests & Syntax Check
+    runs-on: ubuntu-latest
+    # Chỉ chạy khi push test/cd-deploy, hoặc PR vào main được merge thành công, hoặc chạy bằng tay
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/test/cd-deploy') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'main')
+
+    steps:
+      - name: 📥 Checkout source code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci || npm install
+
+      - name: 🔍 Run syntax validation
+        run: npm test
+
+  # ==========================================
+  # BƯỚC 2: CD - TỰ ĐỘNG DEPLOY LÊN CPANEL QUA SSH
+  # ==========================================
+  deploy:
+    name: 🚀 Deploy to cPanel Server via SSH
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout source code
+        uses: actions/checkout@v4
+
+      - name: 🛑 Dừng tiến trình Bot cũ trên cPanel
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USER }}
+          password: ${{ secrets.CPANEL_SSH_PASSWORD }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          script: |
+            set +e
+            echo "🏠 Thoát về thư mục chính (cd ~)..."
+            cd ~
+
+            echo "🔍 Kích hoạt môi trường và vào thư mục bot..."
+            CPANEL_CMD="${{ secrets.CPANEL_ACTIVATE_CMD }}"
+            if [ -n "$CPANEL_CMD" ]; then
+              eval "$CPANEL_CMD"
+            else
+              source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" 2>/dev/null || true
+              cd "${{ secrets.CPANEL_APP_PATH }}" 2>/dev/null || true
+            fi
+
+            echo "🛑 Đang kiểm tra và dừng tiến trình Bot cũ..."
+            PIDS=$(pgrep -f "[s]rc/index.js" 2>/dev/null)
+            if [ -n "$PIDS" ]; then
+              echo "Tìm thấy PID: $PIDS, đang dừng..."
+              for pid in $PIDS; do
+                kill -9 "$pid" 2>/dev/null
+              done
+              echo "✅ Đã dừng tiến trình cũ thành công."
+            else
+              echo "ℹ️ Không có tiến trình Bot cũ nào đang chạy."
+            fi
+
+            mkdir -p "${{ secrets.CPANEL_APP_PATH }}"
+            exit 0
+
+      - name: 🔄 Đồng bộ các file mã nguồn mới lên cPanel
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USER }}
+          password: ${{ secrets.CPANEL_SSH_PASSWORD }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          source: ".,!node_modules,!node_modules/**,!.git,!.git/**,!.env"
+          target: ${{ secrets.CPANEL_APP_PATH }}
+          overwrite: true
+
+      - name: 📦 Cài đặt thư viện & Khởi động Bot mới
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CPANEL_SSH_HOST }}
+          username: ${{ secrets.CPANEL_SSH_USER }}
+          password: ${{ secrets.CPANEL_SSH_PASSWORD }}
+          port: ${{ secrets.CPANEL_SSH_PORT || 22 }}
+          script: |
+            set +e
+            echo "🏠 Thoát về thư mục chính (cd ~)..."
+            cd ~
+
+            echo "🔍 Kích hoạt môi trường ảo Node.js cPanel và chuyển vào thư mục Bot..."
+            CPANEL_CMD="${{ secrets.CPANEL_ACTIVATE_CMD }}"
+            if [ -n "$CPANEL_CMD" ]; then
+              eval "$CPANEL_CMD"
+            else
+              source "/home/${{ secrets.CPANEL_SSH_USER }}/nodevenv/bot/hoangnek_bot_discord/18/bin/activate" && cd "${{ secrets.CPANEL_APP_PATH }}"
+            fi
+
+            echo "📍 Đường dẫn hiện tại: $(pwd)"
+            echo "🟢 Node version: $(node -v 2>/dev/null || echo 'N/A')"
+            echo "🟢 NPM version: $(npm -v 2>/dev/null || echo 'N/A')"
+
+            echo "📦 Cài đặt thư viện dependencies (npm i)..."
+            npm i --omit=dev
+
+            echo "🚀 Khởi động Bot (npm start)..."
+            nohup npm start &
+
+            sleep 3
+            echo "🔍 Kiểm tra trạng thái tiến trình Bot:"
+            pgrep -fl "[s]rc/index.js" || echo "⚠️ Cảnh báo: Vui lòng kiểm tra lại log trong logs/app.log"
+            echo "🎉 Deploy thành công!"
+            exit 0
