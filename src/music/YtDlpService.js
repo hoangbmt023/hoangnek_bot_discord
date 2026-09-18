@@ -5,6 +5,17 @@ const ffmpegPath = require('ffmpeg-static');
 const YtDlpWrap = require('yt-dlp-wrap').default;
 const logger = require('../utils/logger');
 
+// Thiết lập thư mục TMP nội bộ của dự án để vượt qua phân vùng /tmp bị chặn noexec trên cPanel
+const projectTmpDir = path.resolve(__dirname, '../../tmp');
+if (!fs.existsSync(projectTmpDir)) {
+  try {
+    fs.mkdirSync(projectTmpDir, { recursive: true });
+  } catch {}
+}
+process.env.TMPDIR = projectTmpDir;
+process.env.TEMP = projectTmpDir;
+process.env.TMP = projectTmpDir;
+
 /**
  * Service quản lý yt-dlp binary và trích xuất audio stream YouTube qua ffmpeg (Raw PCM 48kHz Stereo)
  */
@@ -28,8 +39,16 @@ class YtDlpService {
     this.binaryPath = path.join(binDir, process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
 
     if (!fs.existsSync(this.binaryPath)) {
-      logger.info('[YtDlp] Đang tải bản yt-dlp binary mới nhất từ GitHub...');
-      await YtDlpWrap.downloadFromGithub(this.binaryPath);
+      logger.info('[YtDlp] Đang tải bản yt-dlp standalone binary mới nhất từ GitHub...');
+      if (process.platform === 'linux') {
+        // Trên Linux (cPanel / CentOS / Ubuntu), tải bản standalone ELF (yt-dlp_linux) đã đóng gói sẵn Python 3.10+
+        // để không bị lỗi xung đột phiên bản Python cũ của hệ điều hành (như Python 3.6.8).
+        const downloadUrl = 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux';
+        await YtDlpWrap.downloadFile(downloadUrl, this.binaryPath);
+        fs.chmodSync(this.binaryPath, '755');
+      } else {
+        await YtDlpWrap.downloadFromGithub(this.binaryPath);
+      }
       logger.info('[YtDlp] Đã tải xong yt-dlp binary.');
     }
 
