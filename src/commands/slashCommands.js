@@ -161,6 +161,8 @@ function buildHelpCommand() {
         .setRequired(false)
         .addChoices(
           { name: 'Tổng quan tất cả lệnh (all)', value: 'all' },
+          { name: 'Hệ thống Phát nhạc (music)', value: 'music' },
+          { name: 'Cấu hình Server & Kênh lệnh (setup)', value: 'setup' },
           { name: 'Danh sách trắng Whitelist (whitelist)', value: 'whitelist' },
           { name: 'Bật/Tắt tính năng Bot (feature)', value: 'feature' },
           { name: 'Hệ thống Lọc ngôn từ độc hại (moderation)', value: 'moderation' },
@@ -170,12 +172,297 @@ function buildHelpCommand() {
 }
 
 /**
- * Lấy mảng JSON dữ liệu các Slash Command (/wl, /feature, /help)
+ * Xây dựng cấu hình Slash Command cho /setup với 3 Nhóm lệnh con (Subcommand Groups):
+ * 1. /setup channel <add|remove|list|clear> [channel] [type]
+ * 2. /setup whitelist <add|remove|list|clear> <feature> [users]
+ * 3. /setup feature <enable|disable|status> <feature>
+ */
+function buildSetupCommand() {
+  return new SlashCommandBuilder()
+    .setName('setup')
+    .setDescription('Trung tâm cấu hình và quản lý các chức năng của Bot trong Server')
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDMPermission(false)
+    // 1. NHÓM CẤU HÌNH KÊNH (CHANNEL)
+    .addSubcommandGroup((group) =>
+      group
+        .setName('channel')
+        .setDescription('Quản lý phân quyền kênh cho phép bot hoạt động')
+        .addSubcommand((sub) =>
+          sub
+            .setName('add')
+            .setDescription('Thêm kênh cho phép sử dụng lệnh Bot & Phát nhạc')
+            .addChannelOption((opt) =>
+              opt
+                .setName('channel')
+                .setDescription('Chọn kênh cần cấp phép')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('remove')
+            .setDescription('Xóa kênh khỏi danh sách được phép dùng lệnh')
+            .addChannelOption((opt) =>
+              opt
+                .setName('channel')
+                .setDescription('Chọn kênh cần xóa quyền')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('list')
+            .setDescription('Xem danh sách các kênh đang được cấp phép')
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('clear')
+            .setDescription('Xóa toàn bộ phân quyền kênh (khóa lệnh toàn server cho đến khi thêm lại)')
+        )
+    )
+    // 2. NHÓM CẤU HÌNH WHITELIST (WHITELIST: Người dùng, Vai trò, Kênh)
+    .addSubcommandGroup((group) =>
+      group
+        .setName('whitelist')
+        .setDescription('Quản lý danh sách trắng (User, Role, Kênh) miễn trừ kiểm duyệt ngôn từ')
+        .addSubcommand((sub) =>
+          sub
+            .setName('add')
+            .setDescription('Thêm Người dùng, Vai trò (Role) hoặc Kênh vào danh sách Whitelist')
+            .addStringOption((opt) =>
+              opt
+                .setName('target')
+                .setDescription('Chọn loại đối tượng cần thêm vào Whitelist')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Người dùng (User)', value: 'users' },
+                  { name: 'Vai trò (Role)', value: 'roles' },
+                  { name: 'Kênh văn bản (Channel)', value: 'channels' }
+                )
+            )
+            .addStringOption((opt) =>
+              opt
+                .setName('value')
+                .setDescription('Tag @user, @role, #channel hoặc ID (phân cách bằng dấu phẩy)')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('remove')
+            .setDescription('Xóa Người dùng, Vai trò (Role) hoặc Kênh khỏi danh sách Whitelist')
+            .addStringOption((opt) =>
+              opt
+                .setName('target')
+                .setDescription('Chọn loại đối tượng cần xóa')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Người dùng (User)', value: 'users' },
+                  { name: 'Vai trò (Role)', value: 'roles' },
+                  { name: 'Kênh văn bản (Channel)', value: 'channels' }
+                )
+            )
+            .addStringOption((opt) =>
+              opt
+                .setName('value')
+                .setDescription('Tag hoặc ID cần xóa khỏi danh sách (phân cách bằng dấu phẩy)')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('list')
+            .setDescription('Xem danh sách Whitelist (Người dùng, Vai trò, Kênh)')
+            .addStringOption((opt) =>
+              opt
+                .setName('target')
+                .setDescription('Lọc theo loại đối tượng (để trống để xem tất cả)')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Tất cả đối tượng (all)', value: 'all' },
+                  { name: 'Người dùng (users)', value: 'users' },
+                  { name: 'Vai trò (roles)', value: 'roles' },
+                  { name: 'Kênh văn bản (channels)', value: 'channels' }
+                )
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('clear')
+            .setDescription('Dọn dẹp danh sách Whitelist trong Server')
+            .addStringOption((opt) =>
+              opt
+                .setName('target')
+                .setDescription('Chọn loại đối tượng cần xóa (để trống xóa tất cả)')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Tất cả đối tượng (all)', value: 'all' },
+                  { name: 'Chỉ Người dùng (users)', value: 'users' },
+                  { name: 'Chỉ Vai trò (roles)', value: 'roles' },
+                  { name: 'Chỉ Kênh văn bản (channels)', value: 'channels' }
+                )
+            )
+        )
+    )
+    // 3. NHÓM BẬT/TẮT TÍNH NĂNG (FEATURE)
+    .addSubcommandGroup((group) =>
+      group
+        .setName('feature')
+        .setDescription('Bật hoặc tắt các tính năng của Bot')
+        .addSubcommand((sub) =>
+          sub
+            .setName('enable')
+            .setDescription('Bật một tính năng của Bot')
+            .addStringOption((opt) =>
+              opt
+                .setName('feature')
+                .setDescription('Tính năng cần bật')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Lọc ngôn từ độc hại (moderation)', value: 'moderation' },
+                  { name: 'Thông báo Chào mừng thành viên (welcome)', value: 'welcome' },
+                  { name: 'Thông báo Tạm biệt thành viên (leave)', value: 'leave' },
+                  { name: 'Tất cả tính năng (all)', value: 'all' }
+                )
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('disable')
+            .setDescription('Tắt một tính năng của Bot')
+            .addStringOption((opt) =>
+              opt
+                .setName('feature')
+                .setDescription('Tính năng cần tắt')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Lọc ngôn từ độc hại (moderation)', value: 'moderation' },
+                  { name: 'Thông báo Chào mừng thành viên (welcome)', value: 'welcome' },
+                  { name: 'Thông báo Tạm biệt thành viên (leave)', value: 'leave' },
+                  { name: 'Tất cả tính năng (all)', value: 'all' }
+                )
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('status')
+            .setDescription('Xem trạng thái BẬT/TẮT của các tính năng')
+            .addStringOption((opt) =>
+              opt
+                .setName('feature')
+                .setDescription('Chọn tính năng cụ thể để xem (mặc định xem tất cả)')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Lọc ngôn từ độc hại (moderation)', value: 'moderation' },
+                  { name: 'Thông báo Chào mừng thành viên (welcome)', value: 'welcome' },
+                  { name: 'Thông báo Tạm biệt thành viên (leave)', value: 'leave' },
+                  { name: 'Tất cả tính năng (all)', value: 'all' }
+                )
+            )
+        )
+    );
+}
+
+/**
+ * Xây dựng cấu hình Slash Command cho /music
+ */
+function buildMusicCommand() {
+  return new SlashCommandBuilder()
+    .setName('music')
+    .setDescription('Điều khiển phát nhạc (YouTube, Spotify, Direct Audio)')
+    .setDMPermission(false)
+    .addSubcommand((sub) =>
+      sub
+        .setName('play')
+        .setDescription('Phát nhạc hoặc thêm vào hàng đợi')
+        .addStringOption((opt) =>
+          opt
+            .setName('query')
+            .setDescription('Tên bài hát hoặc link (YouTube, Spotify, Direct Audio)')
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('skip')
+        .setDescription('Bỏ qua bài hát hiện tại')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('pause')
+        .setDescription('Tạm dừng phát nhạc')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('resume')
+        .setDescription('Tiếp tục phát bài hát đang tạm dừng')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('stop')
+        .setDescription('Dừng phát và dọn sạch hàng đợi')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('queue')
+        .setDescription('Xem danh sách bài hát trong hàng đợi')
+        .addIntegerOption((opt) =>
+          opt
+            .setName('page')
+            .setDescription('Số trang cần xem')
+            .setRequired(false)
+            .setMinValue(1)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('nowplaying')
+        .setDescription('Xem thông tin bài hát đang phát')
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('volume')
+        .setDescription('Điều chỉnh âm lượng phát nhạc')
+        .addIntegerOption((opt) =>
+          opt
+            .setName('level')
+            .setDescription('Mức âm lượng từ 1 đến 100')
+            .setRequired(true)
+            .setMinValue(1)
+            .setMaxValue(100)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('loop')
+        .setDescription('Cài đặt chế độ lặp lại')
+        .addStringOption((opt) =>
+          opt
+            .setName('mode')
+            .setDescription('Chế độ lặp lại')
+            .setRequired(true)
+            .addChoices(
+              { name: 'Tắt lặp (off)', value: 'off' },
+              { name: 'Lặp lại bài hiện tại (track)', value: 'track' },
+              { name: 'Lặp lại toàn bộ hàng đợi (queue)', value: 'queue' }
+            )
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('leave')
+        .setDescription('Ngắt kết nối bot khỏi kênh thoại')
+    );
+}
+
+/**
+ * Lấy mảng JSON dữ liệu các Slash Command (/setup, /music, /help)
  */
 function getSlashCommandsData() {
   return [
-    buildWhitelistCommand('wl').toJSON(),
-    buildFeatureCommand().toJSON(),
+    buildSetupCommand().toJSON(),
+    buildMusicCommand().toJSON(),
     buildHelpCommand().toJSON(),
   ];
 }
@@ -193,28 +480,30 @@ async function registerSlashCommands(client) {
   try {
     logger.info(`[SlashCommands] Đang đăng ký ${commands.length} lệnh Slash Command lên Discord...`);
 
-    // 1. Đăng ký toàn cục (Global)
-    await rest.put(
-      Routes.applicationCommands(client.user.id),
-      { body: commands }
-    );
-    logger.success(`[SlashCommands] Đã đăng ký thành công Slash Command toàn cục!`);
-
-    // 2. Nếu có cấu hình GUILD_ID trong môi trường dev, đăng ký trực tiếp vào Guild để cập nhật tức thì
+    // 1. Đăng ký trực tiếp cho Guild ID nếu có (Cập nhật tức thì 1 giây trên Server phát triển/test)
     if (config.bot.guildId) {
       await rest.put(
         Routes.applicationGuildCommands(client.user.id, config.bot.guildId),
         { body: commands }
       );
-      logger.info(`[SlashCommands] Đã đồng bộ tức thì Slash Command cho Guild ID: ${config.bot.guildId}`);
+      logger.success(`[SlashCommands] Đã đồng bộ tức thì Slash Commands mới lên Guild ID: ${config.bot.guildId}`);
     }
+
+    // 2. Đăng ký toàn cục (Global) cho tất cả server
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: commands }
+    );
+    logger.success(`[SlashCommands] Đã đăng ký thành công ${commands.length} Slash Command toàn cục!`);
   } catch (error) {
     logger.error(`[SlashCommands] Lỗi khi đăng ký Slash Command:`, error);
   }
 }
 
 module.exports = {
-  buildWhitelistCommand,
+  buildSetupCommand,
+  buildMusicCommand,
+  buildHelpCommand,
   getSlashCommandsData,
   registerSlashCommands,
 };

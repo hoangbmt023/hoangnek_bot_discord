@@ -133,74 +133,105 @@ const MODERATION_CONFIG = {
 
 ---
 
-## 🛡️ 7. Tính năng Danh sách trắng (Whitelist / Bỏ qua kiểm duyệt)
+## 🛡️ 7. Tính năng Danh sách trắng (Whitelist: User, Role, Kênh)
 
-Quản trị viên có thể thêm các thành viên đáng tin cậy vào **Whitelist** để bỏ qua kiểm duyệt ngôn từ độc hại hoặc tất cả tính năng bằng **Slash Command duy nhất `/wl`**:
-
-### 📋 1. Sử dụng Slash Command (`/wl`):
-> **Lưu ý**: Chỉ thành viên có quyền **Administrator**, **Manage Guild** hoặc **Manage Messages** mới có thể thực hiện các lệnh này.
-
-| Lệnh Slash | Tham số | Ví dụ thực tế | Mô tả |
-| :--- | :--- | :--- | :--- |
-| `/wl add` | `feature` (toxic/all), `users` (danh sách user) | `/wl add feature:toxic users:@user1, @user2, 123456789` | Thêm nhiều người dùng vào Whitelist theo chức năng |
-| `/wl remove` | `feature` (toxic/all), `users` (danh sách user) | `/wl remove feature:toxic users:@user1, @user2` | Xóa nhiều người dùng khỏi Whitelist theo chức năng |
-| `/wl list` | `feature` *(tùy chọn)* | `/wl list feature:toxic` hoặc `/wl list` | Hiển thị danh sách Whitelist theo chức năng hoặc toàn bộ |
-| `/wl clear` | `feature` *(tùy chọn)* | `/wl clear feature:toxic` hoặc `/wl clear` | Xóa danh sách Whitelist của một chức năng hoặc toàn bộ |
+Hệ thống Whitelist cho phép Quản trị viên miễn trừ kiểm duyệt ngôn từ độc hại (**chỉ áp dụng cho tính năng lọc ngôn từ**) cho 3 loại đối tượng:
+1. **Người dùng (Users)**: Miễn trừ kiểm duyệt cho các cá nhân được tag `@user` hoặc qua User ID.
+2. **Vai trò (Roles)**: Miễn trừ kiểm duyệt cho tất cả thành viên sở hữu vai trò được chỉ định `@Role` hoặc Role ID (ví dụ: Ban Quản Trị, VIP, Bot Tester).
+3. **Kênh chat (Channels)**: Miễn trừ kiểm duyệt cho tất cả tin nhắn gửi trong một kênh chat cụ thể `#channel` hoặc Channel ID (ví dụ: kênh bot-commands, kênh xả stress).
 
 ---
 
-### 💬 2. Sử dụng Cú pháp Chat nhanh (Text Command):
-Hệ thống cũng hỗ trợ gõ nhanh trực tiếp trong kênh chat:
-- **Thêm nhanh nhiều người**: `/wl toxic @user1, @user2, @user3` (hoặc `!wl add toxic @user1, @user2`)
-- **Xóa nhanh nhiều người**: `/wl remove toxic @user1, @user2` (hoặc `!wl remove toxic @user1, @user2`)
-- **Xem danh sách**: `/wl list` (hoặc `!wl list`)
-- **Xóa toàn bộ**: `/wl clear` (hoặc `!wl clear`)
+### 📋 1. Sử dụng Slash Command (`/setup whitelist`):
+> **Lưu ý**: Chỉ thành viên có quyền **Administrator** hoặc **Manage Guild** mới có thể thực hiện các lệnh này.
+
+| Lệnh Slash | Tham số | Ví dụ thực tế | Mô tả |
+| :--- | :--- | :--- | :--- |
+| `/setup whitelist add` | `target` (users/roles/channels), `value` (tags/IDs) | `/setup whitelist add target:roles value:@VIP, @Moderator` | Thêm Người dùng, Role hoặc Kênh vào Whitelist |
+| `/setup whitelist remove` | `target` (users/roles/channels), `value` (tags/IDs) | `/setup whitelist remove target:channels value:#general` | Xóa đối tượng khỏi danh sách Whitelist |
+| `/setup whitelist list` | `target` *(tùy chọn: all/users/roles/channels)* | `/setup whitelist list target:roles` hoặc `/setup whitelist list` | Hiển thị danh sách Whitelist được định dạng trực quan |
+| `/setup whitelist clear` | `target` *(tùy chọn: all/users/roles/channels)* | `/setup whitelist clear target:roles` hoặc `/setup whitelist clear` | Dọn dẹp danh sách Whitelist theo danh mục hoặc toàn bộ |
+
+---
+
+### 💬 2. Sử dụng Cú pháp Chat Prefix nhanh:
+Hệ thống hỗ trợ quản lý nhanh bằng tiền tố `s!setup whitelist` hoặc `!wl`:
+- **Thêm đối tượng**:
+  - `!wl add user @user1, @user2` *(Thêm người dùng)*
+  - `!wl add role @Admin, @VIP` *(Thêm vai trò)*
+  - `!wl add channel #spam-box, #test` *(Thêm kênh miễn trừ)*
+  - `s!setup whitelist add role @VIP`
+- **Xóa đối tượng**:
+  - `!wl remove user @user1`
+  - `!wl remove role @VIP`
+  - `!wl remove channel #spam-box`
+- **Xem danh sách**:
+  - `!wl list` *(Xem toàn bộ User, Role, Kênh)*
+  - `!wl list role` *(Xem riêng Role)*
+  - `!wl list channel` *(Xem riêng Kênh)*
+- **Xóa toàn bộ**:
+  - `!wl clear` *(Dọn sạch toàn bộ danh sách)*
+  - `!wl clear role` *(Chỉ dọn sạch Role)*
 
 ---
 
 ### 💾 3. Lưu trữ dữ liệu:
-Dữ liệu Whitelist được lưu trữ tự động và bền vững theo từng Server tại file `data/whitelist.json`. Cấu trúc phân tách rõ ràng theo Server ID và từng tính năng (`toxic`, `all`).
+Dữ liệu Whitelist được lưu trữ tự động và bền vững theo từng Server tại file `data/whitelist.json` dưới cấu trúc:
+```json
+{
+  "123456789012345678": {
+    "toxic": {
+      "users": ["111111111111111111"],
+      "roles": ["444444444444444444"],
+      "channels": ["555555555555555555"]
+    }
+  }
+}
+```
+*Tương thích ngược 100% với các phiên bản định dạng whitelist trước đó.*
 
 ---
 
 ## 📖 8. Lệnh Trợ Giúp Hướng Dẫn (`/help`)
 
-Hệ thống cung cấp lệnh `/help` chuyên biệt (hỗ trợ cả Slash Command và Text Command `!help` / `/help`) với các danh mục trợ giúp chi tiết:
+Hệ thống cung cấp lệnh `/help` chuyên biệt (hỗ trợ cả Slash Command và Text Command `!help` / `s!help`) với các danh mục trợ giúp chi tiết:
 
 | Lệnh | Phạm vi trợ giúp | Mô tả |
 | :--- | :--- | :--- |
-| `/help` hoặc `/help all` | `all` | Tổng quan danh sách tất cả các lệnh và tính năng của Bot |
-| `/help whitelist` | `whitelist` | Hướng dẫn chi tiết cách thêm, xóa, xem và dọn dẹp danh sách Whitelist (`/wl`) |
-| `/help feature` | `feature` | Hướng dẫn bật/tắt module và lọc danh sách trạng thái (`/feature`) |
-| `/help moderation` | `moderation` | Giải thích chi tiết 3 nhãn (`TRONG SẠCH`, `XÚC PHẠM`, `THÙ GHÉT`) và các mức phạt luỹ tiến |
-| `/help notifications` | `notifications` | Hướng dẫn cơ chế thông báo Chào mừng & Tạm biệt thành viên |
+| `/help feature:all` (hoặc `!help`) | `all` | Tổng quan danh sách tất cả các lệnh và tính năng của Bot |
+| `/help feature:music` (hoặc `s!help`) | `music` | Hướng dẫn chi tiết tất cả các lệnh phát nhạc (`s!play`, `s!skip`, `/music...`) |
+| `/help feature:setup` | `setup` | Hướng dẫn phân quyền kênh, bật/tắt module và quản lý Whitelist qua `/setup` |
+| `/help feature:whitelist` | `whitelist` | Hướng dẫn chi tiết cách thêm, xóa, xem danh sách Whitelist (`/setup whitelist`) |
+| `/help feature:feature` | `feature` | Hướng dẫn bật/tắt module và tra cứu trạng thái (`/setup feature`) |
+| `/help feature:moderation` | `moderation` | Giải thích chi tiết 3 nhãn (`TRONG SẠCH`, `XÚC PHẠM`, `THÙ GHÉT`) và các mức phạt lũy tiến |
+| `/help feature:notifications` | `notifications` | Hướng dẫn cơ chế thông báo Chào mừng & Tạm biệt thành viên |
 
 ---
 
-## 🎛️ 9. Tính năng Bật / Tắt chức năng của Bot (`/feature`)
+## 🎛️ 9. Tính năng Bật / Tắt chức năng của Bot (`/setup feature`)
 
-Quản trị viên có thể linh hoạt Bật hoặc Tắt từng tính năng của bot trong Server của mình thông qua lệnh Slash Command `/feature`:
+Quản trị viên có thể linh hoạt Bật hoặc Tắt từng tính năng của bot trong Server thông qua lệnh **`/setup feature`**:
 
-### 📋 1. Sử dụng Slash Command (`/feature`):
+### 📋 1. Sử dụng Slash Command (`/setup feature`):
 > **Lưu ý**: Chỉ thành viên có quyền **Administrator** hoặc **Manage Guild** mới có thể thực hiện lệnh này.
 
 | Lệnh Slash | Tham số | Ví dụ thực tế | Mô tả |
 | :--- | :--- | :--- | :--- |
-| `/feature enable` | `feature` (moderation/welcome/leave/all) | `/feature enable feature:moderation` | Bật một tính năng của bot |
-| `/feature disable` | `feature` (moderation/welcome/leave/all) | `/feature disable feature:welcome` | Tắt một tính năng của bot |
-| `/feature status` | Không có | `/feature status` | Xem trạng thái bật/tắt toàn bộ tính năng |
+| `/setup feature enable` | `feature` (moderation/welcome/leave/all) | `/setup feature enable feature:moderation` | Bật một tính năng của bot |
+| `/setup feature disable` | `feature` (moderation/welcome/leave/all) | `/setup feature disable feature:welcome` | Tắt một tính năng của bot |
+| `/setup feature status` | `feature` *(tùy chọn)* | `/setup feature status feature:moderation` | Xem trạng thái BẬT/TẮT của một tính năng hoặc toàn bộ |
 
-### 💬 2. Sử dụng Cú pháp Chat nhanh:
-- `!feature enable moderation` hoặc `/feature enable moderation`
-- `!feature disable leave` hoặc `/feature disable leave`
-- `!feature status`
+### 💬 2. Sử dụng Cú pháp Chat Prefix nhanh:
+- `s!setup feature enable moderation` (hoặc `!feature enable moderation`)
+- `s!setup feature disable leave` (hoặc `!feature disable leave`)
+- `s!setup feature status moderation` (hoặc `!feature status`)
 
 ### 💾 3. Lưu trữ cài đặt:
 Trạng thái bật/tắt tính năng được lưu bền vững theo từng Server tại `data/guild_settings.json`. Mặc định tất cả tính năng đều được **BẬT** khi bot mới vào server.
 
 ---
 
-## 🧪 9. Kiểm thử tự động (Unit Test)
+## 🧪 10. Kiểm thử tự động (Unit Test)
 
 Chạy lệnh kiểm thử sau để kiểm tra toàn bộ logic phân loại, tích lũy điểm, Whitelist và Bật/Tắt tính năng:
 

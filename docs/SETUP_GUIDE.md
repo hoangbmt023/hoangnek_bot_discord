@@ -21,8 +21,8 @@ Tài liệu này hướng dẫn chi tiết cách tạo ứng dụng Bot trên Di
    - Dán token vừa lấy vào biến `DISCORD_TOKEN=` trong file `.env.development`.
 3. Cuộn trang xuống phần **Privileged Gateway Intents**:
    - Bật **PRESENCE INTENT** (Tùy chọn)
-   - Bật **SERVER MEMBERS INTENT** (**BẮT BUỘC** - Nếu không bật, bot sẽ không nhận được sự kiện thành viên vào/rời server).
-   - Bật **MESSAGE CONTENT INTENT** (Tùy chọn cho các lệnh sau này).
+   - Bật **SERVER MEMBERS INTENT** (**BẮT BUỘC** - Để nhận sự kiện thành viên vào/rời server và lấy Role).
+   - Bật **MESSAGE CONTENT INTENT** (**BẮT BUỘC** - Để bot đọc nội dung tin nhắn phục vụ lọc ngôn từ độc hại và nhận diện lệnh prefix `s!`, `!wl`, `!feature`).
 4. Nhấn **Save Changes** ở góc dưới.
 
 ---
@@ -35,11 +35,8 @@ Tài liệu này hướng dẫn chi tiết cách tạo ứng dụng Bot trên Di
    - Tích chọn `applications.commands` (để dùng Slash Commands sau này)
 3. Trong bảng **Bot Permissions** xuất hiện phía dưới:
    - Tích chọn các quyền:
-     - `View Channels`
-     - `Send Messages`
-     - `Embed Links`
-     - `Attach Files`
-     - `Read Message History`
+     - **General/Text**: `View Channels`, `Send Messages`, `Embed Links`, `Attach Files`, `Read Message History`, `Use External Emojis`, `Add Reactions`
+     - **Voice (Cho tính năng phát nhạc)**: `Connect` (Kết nối voice), `Speak` (Phát âm thanh), `Use Voice Activity`
 4. Sao chép đường dẫn **Generated URL** ở cuối trang.
 5. Dán URL vào trình duyệt, chọn Server bạn muốn thêm Bot và nhấn **Authorize** (Ủy quyền).
 
@@ -113,8 +110,24 @@ Nếu kênh chat của bạn bị tắt quyền gửi tin nhắn đối với `@
 
 ---
 
-## Bước 6: Chạy thử Bot
+## Bước 6: Tải Mã Nguồn, Cài Đặt & Chạy Thử Bot
 
+### 6.1 Tải mã nguồn về máy:
+- **Cách 1 (Git Clone)**:
+  ```bash
+  git clone https://github.com/hoangbmt023/hoangnek_bot_discord.git
+  cd hoangnek_bot_discord
+  ```
+- **Cách 2 (Tải ZIP / Release)**:
+  1. Tải file ZIP từ nút **`Code` -> `Download ZIP`** trên GitHub hoặc tải file nén tại trang **`Releases`**.
+  2. Giải nén và mở thư mục bằng Terminal / VSCode.
+
+### 6.2 Cài đặt thư viện:
+```bash
+npm install
+```
+
+### 6.3 Khởi chạy Bot:
 Chạy lệnh sau tại thư mục dự án:
 ```bash
 npm run dev
@@ -129,7 +142,7 @@ Nếu thành công, bạn sẽ thấy log:
 [INFO] Đang hoạt động trên 1 server(s).
 ```
 
-Hãy thử mời một tài khoản phụ vào server hoặc kick tài khoản phụ ra khỏi server để kiểm tra thông báo embed của bot!
+Hãy thử mời một tài khoản phụ vào server hoặc gõ `s!play <tên bài>` trong kênh được cấp phép để trải nghiệm bot!
 
 ---
 
