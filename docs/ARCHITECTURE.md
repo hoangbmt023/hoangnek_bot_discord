@@ -73,3 +73,43 @@ Dự án sử dụng module `src/utils/logger.js` được thiết kế tối ư
 - **Cơ chế xoá Log cũ tự động (Retention Policy: 60 ngày)**:
   - Tự động chạy khi khởi động và định kỳ mỗi 24 giờ một lần.
   - Tự động quét và xóa sạch các file log cũ hơn 60 ngày nhằm bảo vệ dung lượng lưu trữ của máy chủ/hosting.
+
+---
+
+## 4. Hệ thống Phát Nhạc (Music Architecture) & Channel Setup
+
+```mermaid
+flowchart TD
+    User[Người dùng chat: s!play / /music play] --> MC[MessageCreate / InteractionCreate]
+    MC --> CSS{ChannelSetupService: Kênh được phép?}
+    CSS -->|Không| Reject[Từ chối & Nhắc nhở cấu hình kênh]
+    CSS -->|Có| MSR[MusicSourceResolver: In-Memory RAM Cache]
+    
+    MSR -->|Cache Hit| Fast[0ms Instant Track Result]
+    MSR -->|YouTube Link/Search| YTDL[YtDlpService: yt-dlp Video Info]
+    MSR -->|Spotify Link| SP[Spotify Hybrid Album / Matcher Engine]
+    SP -->|YouTube Official Playlist| PL[0ms In-Memory Batch Matcher]
+    SP -->|Missing Tracks| YTDL
+    PL --> YTDL
+    MSR -->|Direct Audio .mp3/.flac| DIR[Direct Stream Resource]
+    MSR -->|Link khác| Invalid[Từ chối link không hỗ trợ]
+    
+    YTDL --> FFmpeg[FFmpeg libopus Transcoder: 48kHz Stereo OggOpus]
+    DIR --> FFmpeg
+    Fast --> FFmpeg
+    
+    FFmpeg --> GQ[GuildQueue: AudioPlayer StreamType.OggOpus]
+    GQ --> Voice[Discord Voice Channel - 0% CPU Jitter]
+```
+
+### Thành phần chính của Music Module:
+- `src/music/Track.js`: Đại diện cho bài hát, chuẩn hóa thời lượng và nạp Audio Resource qua `StreamType.OggOpus`.
+- `src/music/MusicSourceResolver.js`: Nhận diện URL, phân giải Spotify thành Album/Track chính chủ trên YouTube, tích hợp bộ đệm RAM Cache 1000 bài (TTL 2h, ~1MB).
+- `src/music/YtDlpService.js`: Điều phối tiến trình `yt-dlp` và `ffmpeg-static` để stream trực tiếp native OggOpus, bắt lỗi EPIPE và giải phóng stream sạch sẽ.
+- `src/music/GuildQueue.js`: Quản lý AudioPlayer, hàng đợi bài hát, chế độ lặp (track/queue/off), volume logarithmic và timeout tự rời kênh khi idle (3 phút).
+- `src/music/MusicManager.js`: Singleton quản lý toàn bộ `GuildQueue` cho các máy chủ.
+- `src/events/guild/voiceStateUpdate.js`: Giám sát trạng thái kênh thoại (báo động ngắt kết nối đột ngột, chuyển kênh và phòng trống).
+- `src/services/channelSetupService.js`: Lưu trữ và kiểm tra phân quyền kênh văn bản được phép dùng lệnh.
+- `src/services/musicCommandHandler.js`: Điều phối và phản hồi toàn bộ lệnh prefix `s!`.
+- `src/services/musicButtonHandler.js`: Điều phối và phản hồi toàn bộ tương tác nút bấm Player (Play/Pause, Skip, Stop, Loop, Volume, Queue) và phân trang hàng đợi.
+

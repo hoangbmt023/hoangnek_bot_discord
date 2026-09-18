@@ -153,14 +153,31 @@ class FeatureCommandHandler {
   }
 
   async handleStatus(message, guildId, filterArg = 'all') {
+    const rawArg = (filterArg || 'all').toLowerCase();
+
+    // Kiểm tra xem filterArg có phải là tên tính năng cụ thể không
+    const normKey = guildSettingsService.normalizeFeature(rawArg);
+    if (normKey && normKey !== 'all') {
+      const isEnabled = guildSettingsService.isFeatureEnabled(guildId, normKey);
+      const meta = guildSettingsService.getFeatureMeta(normKey);
+      const badge = isEnabled ? '`BẬT`' : '`TẮT`';
+      const desc = `• **${meta.name}:** ${badge}\n  *${meta.description}*`;
+
+      const embed = EmbedBuilderUtility.createFeatureToggleResponseEmbed({
+        title: `Trạng Thái Tính Năng • ${meta.name}`,
+        description:
+          `${desc}\n\n` +
+          `*Sử dụng \`s!setup feature enable/disable ${normKey}\` để thay đổi.*`,
+        isStatusList: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
     let filter = 'all';
-    if (filterArg) {
-      const lower = filterArg.toLowerCase();
-      if (lower === 'enabled' || lower === 'on' || lower === 'bat') {
-        filter = 'enabled';
-      } else if (lower === 'disabled' || lower === 'off' || lower === 'tat') {
-        filter = 'disabled';
-      }
+    if (rawArg === 'enabled' || rawArg === 'on' || rawArg === 'bat') {
+      filter = 'enabled';
+    } else if (rawArg === 'disabled' || rawArg === 'off' || rawArg === 'tat') {
+      filter = 'disabled';
     }
 
     let states = guildSettingsService.getAllFeatureStates(guildId);
@@ -196,7 +213,7 @@ class FeatureCommandHandler {
       title: filterTitle,
       description:
         `${desc}\n\n` +
-        `*Sử dụng \`/toggle enable <tính_năng>\` hoặc \`/toggle disable <tính_năng>\` để thay đổi.*`,
+        `*Sử dụng \`s!setup feature enable <tính_năng>\` hoặc \`s!setup feature disable <tính_năng>\` để thay đổi.*`,
       isStatusList: true,
     });
 
