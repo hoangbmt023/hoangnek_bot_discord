@@ -66,8 +66,19 @@ class ModerationService {
     const content = message.content ? message.content.trim() : '';
     if (!content) return;
 
-    // 3. Bỏ qua nếu người dùng có quyền quản trị (Admin / Mod Bypass) hoặc nằm trong Whitelist
-    if (this.hasBypassPermission(message.member) || whitelistService.isWhitelisted(message.guild.id, message.author.id, 'toxic')) {
+    // 3. Bỏ qua nếu người dùng có quyền quản trị (Admin / Mod Bypass) hoặc nằm trong Whitelist (User, Role, Channel)
+    const roleIds = message.member.roles?.cache ? Array.from(message.member.roles.cache.keys()) : [];
+    const isWhitelisted = whitelistService.isWhitelisted(
+      message.guild.id,
+      {
+        userId: message.author.id,
+        roleIds,
+        channelId: message.channel.id,
+      },
+      'toxic'
+    );
+
+    if (this.hasBypassPermission(message.member) || isWhitelisted) {
       return;
     }
 

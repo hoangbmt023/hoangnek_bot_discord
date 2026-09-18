@@ -11,13 +11,22 @@ const SUPPORTED_FEATURES = {
 };
 
 /**
+ * Danh mục đối tượng hỗ trợ Whitelist
+ */
+const TARGET_TYPES = {
+  users: 'Người dùng',
+  roles: 'Vai trò (Role)',
+  channels: 'Kênh văn bản',
+};
+
+/**
  * WhitelistService
- * Quản lý danh sách người dùng được miễn trừ kiểm duyệt (Whitelist) theo từng chức năng
- * Tuân thủ Single Responsibility Principle (SRP)
+ * Quản lý danh sách Người dùng (User), Vai trò (Role), và Kênh (Channel) được miễn trừ kiểm duyệt
+ * Tuân thủ Single Responsibility Principle (SRP) & Domain-Driven Design (DDD)
  */
 class WhitelistService {
   constructor() {
-    // Map lưu trữ: Map<guildId, Map<feature, Set<userId>>>
+    // Map<guildId, Map<feature, { users: Set<string>, roles: Set<string>, channels: Set<string> }>>
     this.whitelist = new Map();
     this.storagePath = path.resolve(process.cwd(), 'data', 'whitelist.json');
     this.loadFromDisk();
@@ -38,6 +47,33 @@ class WhitelistService {
   }
 
   /**
+   * Chuẩn hóa loại đối tượng (users | roles | channels)
+   * @param {string} [target]
+   * @returns {'users'|'roles'|'channels'}
+   */
+  normalizeTarget(target) {
+    if (!target || typeof target !== 'string') return 'users';
+    const cleaned = target.replace(/[<>]/g, '').trim().toLowerCase();
+    if (cleaned === 'role' || cleaned === 'roles' || cleaned === 'vaitro' || cleaned === 'vai_tro') {
+      return 'roles';
+    }
+    if (cleaned === 'channel' || cleaned === 'channels' || cleaned === 'kenh' || cleaned === 'room') {
+      return 'channels';
+    }
+    return 'users';
+  }
+
+  /**
+   * Lấy tên hiển thị tiếng Việt của đối tượng
+   * @param {string} target
+   * @returns {string}
+   */
+  getTargetDisplayName(target) {
+    const key = this.normalizeTarget(target);
+    return TARGET_TYPES[key] || TARGET_TYPES.users;
+  }
+
+  /**
    * Lấy tên hiển thị tiếng Việt của tính năng
    * @param {string} feature
    * @returns {string}
@@ -48,19 +84,19 @@ class WhitelistService {
   }
 
   /**
-   * Trích xuất toàn bộ User ID từ chuỗi văn bản (hỗ trợ tag @user, ID số, phân tách bằng dấu phẩy)
+   * Trích xuất toàn bộ Snowflake ID từ chuỗi văn bản (hỗ trợ tag @user, @Role, #channel, ID số)
    * @param {string|string[]} input
-   * @returns {string[]} Danh sách User ID duy nhất
+   * @returns {string[]} Danh sách Snowflake ID duy nhất
    */
-  extractUserIds(input) {
+  extractIds(input) {
     if (!input) return [];
     if (Array.isArray(input)) {
-      return Array.from(new Set(input.flatMap((item) => this.extractUserIds(item))));
+      return Array.from(new Set(input.flatMap((item) => this.extractIds(item))));
     }
 
     if (typeof input !== 'string') return [];
 
-    // Tìm tất cả các chuỗi ID số của Discord (thường từ 17-20 chữ số)
+    // Tìm tất cả các chuỗi ID số của Discord (17-20 chữ số)
     const matches = input.match(/\d{17,20}/g);
     if (!matches) return [];
 
@@ -68,7 +104,33 @@ class WhitelistService {
   }
 
   /**
-   * Đọc dữ liệu whitelist đã lưu từ file JSON (nếu có)
+   * Tự động nhận diện loại đối tượng dựa trên chuỗi nhập (nếu có tag)
+   * @param {string} input
+   * @param {string} [fallbackTarget='users']
+   * @returns {'users'|'roles'|'channels'}
+   */
+  detectTargetType(input, fallbackTarget = 'users') {
+    if (!input || typeof input !== 'string') return this.normalizeTarget(fallbackTarget);
+    if (input.includes('<@&')) return 'roles';
+    if (input.includes('<#')) return 'channels';
+    if (input.includes('<@')) return 'users';
+    return this.normalizeTarget(fallbackTarget);
+  }
+
+  /**
+   * Khởi tạo cấu trúc mục tính năng rỗng
+   * @returns {{ users: Set<string>, roles: Set<string>, channels: Set<string> }}
+   */
+  createEmptyFeatureStore() {
+    return {
+      users: new Set(),
+      roles: new Set(),
+      channels: new Set(),
+    };
+  }
+
+  /**
+   * Đọc dữ liệu whitelist đã lưu từ file JSON (tự động gộp dữ liệu cũ vào kho kiểm duyệt duy nhất)
    */
   loadFromDisk() {
     try {
@@ -83,16 +145,24 @@ class WhitelistService {
 
         for (const [guildId, guildData] of Object.entries(parsed)) {
           const featureMap = new Map();
+          const unifiedStore = this.createEmptyFeatureStore();
 
-          // Hỗ trợ tương thích ngược nếu guildData là array cũ
           if (Array.isArray(guildData)) {
-            featureMap.set('toxic', new Set(guildData));
+            // Định dạng cổ: Array các user ID
+            guildData.forEach((id) => unifiedStore.users.add(id));
           } else if (typeof guildData === 'object' && guildData !== null) {
-            for (const [feat, userIds] of Object.entries(guildData)) {
-              featureMap.set(feat, new Set(Array.isArray(userIds) ? userIds : []));
+            for (const [feat, featData] of Object.entries(guildData)) {
+              if (Array.isArray(featData)) {
+                featData.forEach((id) => unifiedStore.users.add(id));
+              } else if (typeof featData === 'object' && featData !== null) {
+                if (Array.isArray(featData.users)) featData.users.forEach((id) => unifiedStore.users.add(id));
+                if (Array.isArray(featData.roles)) featData.roles.forEach((id) => unifiedStore.roles.add(id));
+                if (Array.isArray(featData.channels)) featData.channels.forEach((id) => unifiedStore.channels.add(id));
+              }
             }
           }
 
+          featureMap.set('toxic', unifiedStore);
           this.whitelist.set(guildId, featureMap);
         }
         logger.info(`[Whitelist] Đã tải danh sách Whitelist từ bộ nhớ lưu trữ.`);
@@ -109,11 +179,19 @@ class WhitelistService {
     try {
       const exportData = {};
       for (const [guildId, featureMap] of this.whitelist.entries()) {
-        exportData[guildId] = {};
-        for (const [feat, userSet] of featureMap.entries()) {
-          if (userSet.size > 0) {
-            exportData[guildId][feat] = Array.from(userSet);
-          }
+        const store = featureMap.get('toxic') || this.createEmptyFeatureStore();
+        const u = Array.from(store.users);
+        const r = Array.from(store.roles);
+        const c = Array.from(store.channels);
+
+        if (u.length > 0 || r.length > 0 || c.length > 0) {
+          exportData[guildId] = {
+            toxic: {
+              users: u,
+              roles: r,
+              channels: c,
+            },
+          };
         }
       }
 
@@ -126,7 +204,7 @@ class WhitelistService {
   /**
    * Lấy Map tính năng của 1 guild
    * @param {string} guildId
-   * @returns {Map<string, Set<string>>}
+   * @returns {Map<string, { users: Set<string>, roles: Set<string>, channels: Set<string> }>}
    */
   getGuildMap(guildId) {
     if (!this.whitelist.has(guildId)) {
@@ -136,84 +214,89 @@ class WhitelistService {
   }
 
   /**
-   * Lấy Set user theo từng tính năng của 1 guild
+   * Lấy cấu trúc store theo từng tính năng của 1 guild (thống nhất về 'toxic')
    * @param {string} guildId
-   * @param {string} feature
-   * @returns {Set<string>}
+   * @param {string} [feature='toxic']
+   * @returns {{ users: Set<string>, roles: Set<string>, channels: Set<string> }}
    */
-  getFeatureSet(guildId, feature = 'toxic') {
-    const normFeature = this.normalizeFeature(feature);
+  getFeatureStore(guildId, feature = 'toxic') {
     const guildMap = this.getGuildMap(guildId);
-    if (!guildMap.has(normFeature)) {
-      guildMap.set(normFeature, new Set());
+    if (!guildMap.has('toxic')) {
+      guildMap.set('toxic', this.createEmptyFeatureStore());
     }
-    return guildMap.get(normFeature);
+    return guildMap.get('toxic');
   }
 
   /**
-   * Kiểm tra người dùng có nằm trong Whitelist của tính năng không
+   * Kiểm tra xem ngữ cảnh tin nhắn (User, Role, hoặc Channel) có nằm trong Whitelist không
    * @param {string} guildId
-   * @param {string} userId
+   * @param {string|{ userId?: string, roleIds?: string[], channelId?: string }} context
    * @param {string} [feature='toxic']
    * @returns {boolean}
    */
-  isWhitelisted(guildId, userId, feature = 'toxic') {
-    if (!guildId || !userId) return false;
-    const normFeature = this.normalizeFeature(feature);
-    const guildMap = this.getGuildMap(guildId);
+  isWhitelisted(guildId, context, feature = 'toxic') {
+    if (!guildId || !context) return false;
 
-    // Nếu nằm trong danh sách 'all' (tất cả tính năng) hoặc nằm trong tính năng cụ thể
-    const allSet = guildMap.get('all');
-    if (allSet && allSet.has(userId)) return true;
+    // Hỗ trợ truyền thẳng userId dạng string cho tương thích ngược
+    const userId = typeof context === 'string' ? context : context.userId;
+    const roleIds = typeof context === 'object' && Array.isArray(context.roleIds) ? context.roleIds : [];
+    const channelId = typeof context === 'object' ? context.channelId : null;
 
-    const featSet = guildMap.get(normFeature);
-    if (featSet && featSet.has(userId)) return true;
+    const store = this.getFeatureStore(guildId, 'toxic');
+
+    // 1. Kiểm tra User ID
+    if (userId && store.users.has(userId)) return true;
+
+    // 2. Kiểm tra Role IDs của thành viên
+    if (roleIds.length > 0) {
+      for (const roleId of roleIds) {
+        if (store.roles.has(roleId)) return true;
+      }
+    }
+
+    // 3. Kiểm tra Channel ID
+    if (channelId && store.channels.has(channelId)) return true;
 
     return false;
   }
 
   /**
-   * Thêm 1 người dùng vào danh sách Whitelist của một tính năng
+   * Thêm đối tượng (Users, Roles, hoặc Channels) vào danh sách Whitelist
    * @param {string} guildId
-   * @param {string} userId
+   * @param {'users'|'roles'|'channels'|string} targetType
+   * @param {string|string[]} input
    * @param {string} [feature='toxic']
-   * @returns {boolean}
+   * @returns {{ targetType: string, targetName: string, feature: string, featureName: string, added: string[], alreadyExists: string[] }}
    */
-  addUser(guildId, userId, feature = 'toxic') {
-    const res = this.addUsers(guildId, [userId], feature);
-    return res.added.length > 0;
-  }
-
-  /**
-   * Thêm nhiều người dùng vào danh sách Whitelist của một tính năng
-   * @param {string} guildId
-   * @param {string|string[]} usersInput
-   * @param {string} [feature='toxic']
-   * @returns {{ feature: string, featureName: string, added: string[], alreadyExists: string[] }}
-   */
-  addUsers(guildId, usersInput, feature = 'toxic') {
+  addTargets(guildId, targetType, input, feature = 'toxic') {
+    const normTarget = this.normalizeTarget(targetType);
     const normFeature = this.normalizeFeature(feature);
-    const userIds = this.extractUserIds(usersInput);
-    const featSet = this.getFeatureSet(guildId, normFeature);
+    const ids = this.extractIds(input);
+    const store = this.getFeatureStore(guildId, normFeature);
 
+    const targetSet = store[normTarget];
     const added = [];
     const alreadyExists = [];
 
-    for (const userId of userIds) {
-      if (featSet.has(userId)) {
-        alreadyExists.push(userId);
+    for (const id of ids) {
+      if (targetSet.has(id)) {
+        alreadyExists.push(id);
       } else {
-        featSet.add(userId);
-        added.push(userId);
+        targetSet.add(id);
+        added.push(id);
       }
     }
 
     if (added.length > 0) {
       this.saveToDisk();
-      logger.info(`[Whitelist] Đã thêm ${added.length} người dùng vào [${normFeature}] cho Guild ${guildId}`);
+      logger.info(
+        `[Whitelist] Guild ${guildId}: Đã thêm ${added.length} ${normTarget} vào Whitelist [${normFeature}]`
+      );
     }
 
     return {
+      targetType: normTarget,
+      targetName: this.getTargetDisplayName(normTarget),
       feature: normFeature,
       featureName: this.getFeatureDisplayName(normFeature),
       added,
@@ -222,47 +305,42 @@ class WhitelistService {
   }
 
   /**
-   * Xóa 1 người dùng khỏi danh sách Whitelist
+   * Xóa đối tượng khỏi danh sách Whitelist
    * @param {string} guildId
-   * @param {string} userId
+   * @param {'users'|'roles'|'channels'|string} targetType
+   * @param {string|string[]} input
    * @param {string} [feature='toxic']
-   * @returns {boolean}
+   * @returns {{ targetType: string, targetName: string, feature: string, featureName: string, removed: string[], notFound: string[] }}
    */
-  removeUser(guildId, userId, feature = 'toxic') {
-    const res = this.removeUsers(guildId, [userId], feature);
-    return res.removed.length > 0;
-  }
-
-  /**
-   * Xóa nhiều người dùng khỏi danh sách Whitelist của một tính năng
-   * @param {string} guildId
-   * @param {string|string[]} usersInput
-   * @param {string} [feature='toxic']
-   * @returns {{ feature: string, featureName: string, removed: string[], notFound: string[] }}
-   */
-  removeUsers(guildId, usersInput, feature = 'toxic') {
+  removeTargets(guildId, targetType, input, feature = 'toxic') {
+    const normTarget = this.normalizeTarget(targetType);
     const normFeature = this.normalizeFeature(feature);
-    const userIds = this.extractUserIds(usersInput);
-    const featSet = this.getFeatureSet(guildId, normFeature);
+    const ids = this.extractIds(input);
+    const store = this.getFeatureStore(guildId, normFeature);
 
+    const targetSet = store[normTarget];
     const removed = [];
     const notFound = [];
 
-    for (const userId of userIds) {
-      if (featSet.has(userId)) {
-        featSet.delete(userId);
-        removed.push(userId);
+    for (const id of ids) {
+      if (targetSet.has(id)) {
+        targetSet.delete(id);
+        removed.push(id);
       } else {
-        notFound.push(userId);
+        notFound.push(id);
       }
     }
 
     if (removed.length > 0) {
       this.saveToDisk();
-      logger.info(`[Whitelist] Đã xóa ${removed.length} người dùng khỏi [${normFeature}] cho Guild ${guildId}`);
+      logger.info(
+        `[Whitelist] Guild ${guildId}: Đã xóa ${removed.length} ${normTarget} khỏi Whitelist [${normFeature}]`
+      );
     }
 
     return {
+      targetType: normTarget,
+      targetName: this.getTargetDisplayName(normTarget),
       feature: normFeature,
       featureName: this.getFeatureDisplayName(normFeature),
       removed,
@@ -271,43 +349,94 @@ class WhitelistService {
   }
 
   /**
-   * Lấy danh sách ID người dùng trong Whitelist
+   * Lấy danh sách Whitelist của Guild theo loại đối tượng và tính năng
    * @param {string} guildId
-   * @param {string} [feature] Nếu không truyền sẽ trả về tất cả tính năng
-   * @returns {Record<string, string[]> | string[]}
+   * @param {'all'|'users'|'roles'|'channels'|string} [targetType='all']
+   * @param {string} [feature='toxic']
+   * @returns {{ users: string[], roles: string[], channels: string[] } | string[]}
    */
-  getList(guildId, feature = null) {
-    const guildMap = this.getGuildMap(guildId);
+  getList(guildId, targetType = 'all', feature = 'toxic') {
+    let resolvedTarget = 'all';
 
-    if (feature) {
-      const normFeature = this.normalizeFeature(feature);
-      const set = guildMap.get(normFeature);
-      return set ? Array.from(set) : [];
+    if (targetType === 'toxic' || targetType === 'moderation') {
+      resolvedTarget = feature && feature !== 'toxic' ? feature : 'all';
+    } else {
+      resolvedTarget = targetType || 'all';
     }
 
-    const result = {};
-    for (const [feat, set] of guildMap.entries()) {
-      if (set.size > 0) {
-        result[feat] = Array.from(set);
-      }
+    const normTarget = String(resolvedTarget).toLowerCase();
+    const store = this.getFeatureStore(guildId, 'toxic');
+
+    if (normTarget === 'users' || normTarget === 'user') {
+      return Array.from(store.users);
     }
-    return result;
+    if (normTarget === 'roles' || normTarget === 'role') {
+      return Array.from(store.roles);
+    }
+    if (normTarget === 'channels' || normTarget === 'channel') {
+      return Array.from(store.channels);
+    }
+
+    return {
+      users: Array.from(store.users),
+      roles: Array.from(store.roles),
+      channels: Array.from(store.channels),
+    };
   }
 
   /**
-   * Xóa toàn bộ danh sách Whitelist của Guild
+   * Xóa danh sách Whitelist của Guild
    * @param {string} guildId
-   * @param {string} [feature] Nếu không truyền sẽ xóa sạch tất cả tính năng
+   * @param {'all'|'users'|'roles'|'channels'|string} [targetType='all']
+   * @param {string} [feature=null]
    */
-  clearList(guildId, feature = null) {
-    const guildMap = this.getGuildMap(guildId);
-    if (feature) {
-      const normFeature = this.normalizeFeature(feature);
-      guildMap.delete(normFeature);
+  clearList(guildId, targetType = 'all', feature = null) {
+    let resolvedTarget = 'all';
+
+    if (targetType === 'toxic' || targetType === 'moderation') {
+      resolvedTarget = feature || 'all';
     } else {
-      this.whitelist.set(guildId, new Map());
+      resolvedTarget = targetType || 'all';
     }
+
+    const normTarget = String(resolvedTarget).toLowerCase();
+    const store = this.getFeatureStore(guildId, 'toxic');
+
+    if (normTarget === 'all') {
+      store.users.clear();
+      store.roles.clear();
+      store.channels.clear();
+    } else if (normTarget === 'users' || normTarget === 'user') {
+      store.users.clear();
+    } else if (normTarget === 'roles' || normTarget === 'role') {
+      store.roles.clear();
+    } else if (normTarget === 'channels' || normTarget === 'channel') {
+      store.channels.clear();
+    }
+
     this.saveToDisk();
+    logger.info(`[Whitelist] Guild ${guildId}: Đã dọn dẹp Whitelist mục [${normTarget}]`);
+  }
+
+  // --- Các hàm tiện ích tương thích ngược (Backward Compatibility) ---
+  extractUserIds(input) {
+    return this.extractIds(input);
+  }
+
+  addUser(guildId, userId, feature = 'toxic') {
+    return this.addTargets(guildId, 'users', [userId], feature).added.length > 0;
+  }
+
+  addUsers(guildId, usersInput, feature = 'toxic') {
+    return this.addTargets(guildId, 'users', usersInput, feature);
+  }
+
+  removeUser(guildId, userId, feature = 'toxic') {
+    return this.removeTargets(guildId, 'users', [userId], feature).removed.length > 0;
+  }
+
+  removeUsers(guildId, usersInput, feature = 'toxic') {
+    return this.removeTargets(guildId, 'users', usersInput, feature);
   }
 }
 

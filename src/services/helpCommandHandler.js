@@ -1,4 +1,4 @@
-﻿const EmbedBuilderUtility = require('../utils/embedBuilder');
+const EmbedBuilderUtility = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
 
 /**
@@ -19,6 +19,10 @@ class HelpCommandHandler {
       lower.startsWith('!help ') ||
       lower === '/help' ||
       lower.startsWith('/help ') ||
+      lower === 's!help' ||
+      lower.startsWith('s!help ') ||
+      lower === 's!h' ||
+      lower.startsWith('s!h ') ||
       lower === '!trogiup' ||
       lower.startsWith('!trogiup ') ||
       lower === '/trogiup' ||
@@ -34,12 +38,14 @@ class HelpCommandHandler {
     if (!message || !message.guild) return;
 
     try {
-      const rawContent = message.content.trim();
+      const rawContent = message.content.trim().toLowerCase();
+      const isMusicPrefix = rawContent.startsWith('s!help') || rawContent.startsWith('s!h');
+
+      let feature = isMusicPrefix ? 'music' : 'all';
       const firstSpaceIdx = rawContent.indexOf(' ');
 
-      let feature = 'all';
       if (firstSpaceIdx !== -1) {
-        const arg = rawContent.slice(firstSpaceIdx + 1).trim().toLowerCase();
+        const arg = rawContent.slice(firstSpaceIdx + 1).trim();
         if (arg) {
           feature = arg;
         }
