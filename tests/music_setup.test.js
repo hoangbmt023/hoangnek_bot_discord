@@ -132,13 +132,14 @@ async function runTests() {
   assert.strictEqual(slashData.length, 3, 'Chỉ đăng ký đúng 3 Slash Commands: /setup, /music, /help');
   const setupCmd = slashData.find((c) => c.name === 'setup');
   assert(setupCmd, 'Slash Command /setup phải tồn tại');
-  assert.strictEqual(setupCmd.options.length, 3, '/setup phải có 3 Subcommand Groups (channel, whitelist, feature)');
+  assert.strictEqual(setupCmd.options.length, 4, '/setup phải có 4 Subcommand Groups (channel, whitelist, feature, notify)');
   
   const groupNames = setupCmd.options.map((o) => o.name);
   assert(groupNames.includes('channel'), 'Nhóm channel phải tồn tại trong /setup');
   assert(groupNames.includes('whitelist'), 'Nhóm whitelist phải tồn tại trong /setup');
   assert(groupNames.includes('feature'), 'Nhóm feature phải tồn tại trong /setup');
-  console.log('✅ [Pass] Cấu trúc Slash Command /setup với 3 Subcommand Groups (channel, whitelist, feature) chuẩn xác.');
+  assert(groupNames.includes('notify'), 'Nhóm notify phải tồn tại trong /setup');
+  console.log('✅ [Pass] Cấu trúc Slash Command /setup với 4 Subcommand Groups (channel, whitelist, feature, notify) chuẩn xác.');
 
   // 5. Kiểm thử Embed UI (Searching & Queue Pagination)
   console.log('\n--- 5. Kiểm thử Embed UI (Searching & Queue Pagination) ---');

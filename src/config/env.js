@@ -34,11 +34,7 @@ const config = {
   bot: {
     token: process.env.DISCORD_TOKEN || '',
     clientId: process.env.CLIENT_ID || '',
-    guildId: process.env.GUILD_ID || '',
-  },
-  channels: {
-    welcomeChannelId: process.env.WELCOME_CHANNEL_ID || '',
-    leaveChannelId: process.env.LEAVE_CHANNEL_ID || '',
+    guildId: process.env.GUILD_ID || '', // Tùy chọn: Dùng để đồng bộ Slash Command tức thì trên server test
   },
 };
 

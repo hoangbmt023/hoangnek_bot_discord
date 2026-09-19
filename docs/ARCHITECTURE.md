@@ -113,3 +113,23 @@ flowchart TD
 - `src/services/musicCommandHandler.js`: Điều phối và phản hồi toàn bộ lệnh prefix `s!`.
 - `src/services/musicButtonHandler.js`: Điều phối và phản hồi toàn bộ tương tác nút bấm Player (Play/Pause, Skip, Stop, Loop, Volume, Queue) và phân trang hàng đợi.
 
+---
+
+## 5. Kiến Trúc Đa Server (Multi-Guild) & Phân Giải Kênh Thông Báo Động
+
+```mermaid
+flowchart TD
+    Join[Thành viên Vào/Rời Server] --> MNS[MemberNotificationService]
+    MNS --> GSS{GuildSettingsService: Có cấu hình kênh riêng?}
+    GSS -->|Có & Kênh hợp lệ| Custom[Gửi vào Kênh tùy chỉnh đã setup]
+    GSS -->|Không hoặc Kênh đã bị xóa| SysCheck{Guild có SystemChannel?}
+    SysCheck -->|Có & Đủ quyền| SysChannel[Gửi vào Kênh hệ thống Server]
+    SysCheck -->|Không| Fallback[Gửi vào Kênh Text đầu tiên có đủ quyền]
+```
+
+### Các thành phần chính:
+- `src/services/guildSettingsService.js`: Lưu trữ trạng thái bật/tắt tính năng và kênh thông báo (`welcomeChannelId`, `leaveChannelId`) cô lập theo từng Server trong `data/guild_settings.json`.
+- `src/services/memberNotificationService.js`: Thực hiện thuật toán phân giải kênh 3 cấp (Kênh tùy chỉnh -> Kênh hệ thống mặc định -> Kênh văn bản có quyền).
+- `src/events/guild/guildCreate.js`: Bắt sự kiện Bot được mời vào Server mới, gửi thông điệp chào mừng và hướng dẫn thiết lập nhanh.
+- `src/commands/slashCommands.js`: Đăng ký Slash Command toàn cục (`Routes.applicationCommands`) cho mọi máy chủ và hỗ trợ nhóm lệnh `/setup notify`.
+
