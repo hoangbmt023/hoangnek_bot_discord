@@ -19,9 +19,16 @@ Bot Discord được xây dựng bằng **Node.js** và thư viện **discord.js
   - **Tự động rời phòng (Auto Leave)**: Tự động ngắt kết nối sau 3 phút không hoạt động hoặc khi phòng voice trống để tối ưu tài nguyên.
 - 🔒 **Phân Quyền Kênh Lệnh (/setup & s!setup)**:
   - Mặc định khóa lệnh ở tất cả các kênh để chống spam chat.
-  - Quản trị viên chỉ định các kênh văn bản được phép dùng lệnh qua `/setup channel add` hoặc `s!setup add`.
-- 🌟 **Thông báo Chào mừng (Welcome Message)**: Bắt sự kiện `guildMemberAdd` và gửi Embed Card chào đón thành viên mới, hiển thị avatar, ngày tạo tài khoản và thứ tự thành viên trong Server.
-- 👋 **Thông báo Tạm biệt (Leave Message)**: Bắt sự kiện `guildMemberRemove` và gửi Embed Card tạm biệt, hiển thị thời gian đã tham gia và số lượng thành viên còn lại.
+  - Quản trị viên chỉ định các kênh văn bản được phép dùng lệnh qua `/setup channel add` hoặc `s!setup channel add`.
+- 🌟 **Thông báo Chào mừng & Tạm biệt Động (Multi-Guild Welcome & Leave)**:
+  - Bắt sự kiện `guildMemberAdd` / `guildMemberRemove` và gửi Embed Card đẹp mắt.
+  - **Mặc định**: Tự động gửi vào **Kênh hệ thống (System Channel)** của Server.
+  - **Tùy chỉnh riêng cho từng Server**: Cài đặt qua lệnh `/setup notify set` hoặc `s!setup notify <welcome|leave> #kênh` (hoặc `s!setup welcome #kênh`, `s!setup leave #kênh`), không phụ thuộc file `.env`.
+  - Khôi phục mặc định dễ dàng bằng `/setup notify reset` hoặc `s!setup notify reset`.
+- 🌐 **Hỗ Trợ Đa Server Toàn Diện (Multi-Guild)**:
+  - Tự động bắt sự kiện `guildCreate` khi được mời vào server mới và gửi hướng dẫn thiết lập nhanh.
+  - Tự động đăng ký Slash Commands toàn cục (Global) cho mọi Server bot tham gia.
+  - Dữ liệu cấu hình từng Server hoàn toàn độc lập và bền vững.
 - 🛡️ **Lọc Ngôn Từ Độc Hại & Hate Speech 3 Nhãn (`TRONG SẠCH`, `XÚC PHẠM`, `THÙ GHÉT`)**:
   - Tự động nhận diện từ ngữ thô tục, chửi thề (`XÚC PHẠM`) và ngôn từ thù ghét/xúc phạm nặng (`THÙ GHÉT`).
   - Hệ thống tích lũy điểm cảnh cáo và xử lý kỷ luật lũy tiến: **Xóa tin nhắn**, **Gửi cảnh cáo riêng qua DM**, **Timeout (10 phút)**, **Kick**, và **Ban vĩnh viễn**.
@@ -58,7 +65,7 @@ hoangnek_bot_discord/
 │   └── cd-production.yml     # CD: Tự động deploy lên cPanel Linux khi merge main
 ├── data/
 │   ├── channel_setup.json    # Cấu hình phân quyền kênh văn bản cho phép
-│   ├── guild_settings.json   # Cài đặt bật/tắt tính năng theo Server
+│   ├── guild_settings.json   # Cài đặt bật/tắt tính năng & kênh thông báo theo Server
 │   └── whitelist.json        # Dữ liệu Whitelist lưu trữ cục bộ
 ├── docs/                     # Tài liệu hướng dẫn chi tiết
 │   ├── MUSIC_GUIDE.md        # Hướng dẫn chi tiết hệ thống Phát Nhạc & Cấu hình kênh
@@ -81,6 +88,7 @@ hoangnek_bot_discord/
 │   │   ├── client/
 │   │   │   └── ready.js      # Sự kiện khi Bot online & đăng ký slash command
 │   │   └── guild/
+│   │       ├── guildCreate.js       # Sự kiện khi Bot được thêm vào server mới
 │   │       ├── guildMemberAdd.js    # Sự kiện thành viên vào server
 │   │       ├── guildMemberRemove.js # Sự kiện thành viên rời server
 │   │       ├── interactionCreate.js # Xử lý Slash Command (/setup, /music, /wl, /feature, /help)
@@ -101,7 +109,7 @@ hoangnek_bot_discord/
 │   │   ├── warningStore.js              # Quản lý điểm phạt & thời gian hết hạn
 │   │   ├── whitelistService.js          # Quản lý lưu trữ Whitelist theo Guild
 │   │   ├── whitelistCommandHandler.js   # Xử lý câu lệnh !whitelist / !wl
-│   │   ├── guildSettingsService.js      # Quản lý cấu hình bật/tắt tính năng theo Guild
+│   │   ├── guildSettingsService.js      # Quản lý cấu hình bật/tắt tính năng & kênh thông báo theo Guild
 │   │   ├── featureCommandHandler.js     # Xử lý câu lệnh !feature / !toggle
 │   │   ├── helpCommandHandler.js        # Xử lý câu lệnh !help / /help / s!help
 │   │   └── toxicity/                    # Các bộ phân loại độc hại (Strategy Pattern)
@@ -114,8 +122,10 @@ hoangnek_bot_discord/
 │   │   └── logger.js         # Hệ thống log màu sắc theo thời gian thực
 │   └── index.js              # Entrypoint khởi chạy ứng dụng
 ├── tests/
-│   ├── moderation.test.js    # Test kiểm duyệt ngôn từ & điểm phạt
-│   └── music_setup.test.js   # Test hệ thống phát nhạc & phân quyền kênh
+│   ├── moderation.test.js         # Test kiểm duyệt ngôn từ & điểm phạt
+│   ├── music_setup.test.js        # Test hệ thống phát nhạc & phân quyền kênh
+│   ├── music_buttons.test.js      # Test nút bấm Player & phân trang
+│   └── notification_setup.test.js # Test cấu hình kênh thông báo & đa server
 ├── .cpanel.yml               # Cấu hình cPanel Git Deployment native
 ├── .env.example              # Mẫu cấu hình môi trường
 ├── .env.development          # Cấu hình môi trường dev (đã được .gitignore)
@@ -170,9 +180,7 @@ Mở file `.env.development` (hoặc `.env.production`) và điền các thông 
 NODE_ENV=development
 DISCORD_TOKEN=dien_token_bot_cua_ban_tai_day
 CLIENT_ID=dien_application_id_cua_ban
-GUILD_ID=dien_server_id_de_test
-WELCOME_CHANNEL_ID=dien_id_kenh_chao_mung
-LEAVE_CHANNEL_ID=dien_id_kenh_tam_biet_hoac_de_trong
+GUILD_ID= # (Tùy chọn) Chỉ điền nếu muốn đồng bộ Slash Commands tức thì khi test dev
 ```
 
 > [!IMPORTANT]

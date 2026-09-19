@@ -520,6 +520,101 @@ class InteractionCreateEvent extends BaseEvent {
         }
       }
     }
+
+    // 4. CẤU HÌNH KÊNH THÔNG BÁO VÀO/RA (subGroup === 'notify')
+    if (subGroup === 'notify') {
+      const action = subCommand;
+
+      switch (action) {
+        case 'set': {
+          const type = interaction.options.getString('type', true);
+          const targetChannel = interaction.options.getChannel('channel', true);
+
+          if (!targetChannel.isTextBased()) {
+            const errEmbed = EmbedBuilderUtility.createNotificationSetupResponseEmbed({
+              title: 'Kênh Không Hợp Lệ',
+              description: '❌ Vui lòng chọn một **kênh văn bản (Text Channel)** để nhận thông báo.',
+              success: false,
+            });
+            return await interaction.reply({ embeds: [errEmbed], ephemeral: true });
+          }
+
+          guildSettingsService.setNotificationChannel(guildId, type, targetChannel.id);
+
+          let desc = '';
+          if (type === 'all') {
+            desc = `Đã cài đặt kênh <#${targetChannel.id}> làm kênh nhận thông báo **Chào mừng** và **Tạm biệt** thành viên.`;
+          } else if (type === 'leave') {
+            desc = `Đã cài đặt kênh <#${targetChannel.id}> làm kênh nhận thông báo **Tạm biệt** thành viên rời đi.`;
+          } else {
+            desc = `Đã cài đặt kênh <#${targetChannel.id}> làm kênh nhận thông báo **Chào mừng** thành viên mới.`;
+          }
+
+          const embed = EmbedBuilderUtility.createNotificationSetupResponseEmbed({
+            title: 'Cài Đặt Kênh Thông Báo Thành Công',
+            description: `${desc}\n\n> *Nếu không cấu hình hoặc sau khi reset, bot sẽ mặc định gửi vào Kênh hệ thống.*`,
+            success: true,
+          });
+          return await interaction.reply({ embeds: [embed] });
+        }
+
+        case 'reset': {
+          const type = interaction.options.getString('type') || 'all';
+          guildSettingsService.resetNotificationChannel(guildId, type);
+
+          let desc = '';
+          if (type === 'all') {
+            desc = 'Đã đặt lại toàn bộ kênh thông báo về **Kênh hệ thống mặc định (System Channel)** của Server.';
+          } else if (type === 'leave') {
+            desc = 'Đã đặt lại kênh Tạm biệt về **Kênh hệ thống mặc định (System Channel)** của Server.';
+          } else {
+            desc = 'Đã đặt lại kênh Chào mừng về **Kênh hệ thống mặc định (System Channel)** của Server.';
+          }
+
+          const embed = EmbedBuilderUtility.createNotificationSetupResponseEmbed({
+            title: 'Đặt Lại Kênh Thông Báo',
+            description: desc,
+            success: true,
+            isDestructive: true,
+          });
+          return await interaction.reply({ embeds: [embed] });
+        }
+
+        case 'status':
+        case 'list': {
+          const settings = guildSettingsService.getNotificationSettings(guildId);
+          const systemCh = interaction.guild.systemChannel ? `<#${interaction.guild.systemChannel.id}>` : '*Không có*';
+          const welcomeCh = settings.welcomeChannelId
+            ? `<#${settings.welcomeChannelId}> (\`${settings.welcomeChannelId}\`)`
+            : `Mặc định (Kênh hệ thống: ${systemCh})`;
+          const leaveCh = settings.leaveChannelId
+            ? `<#${settings.leaveChannelId}> (\`${settings.leaveChannelId}\`)`
+            : `Mặc định (Kênh hệ thống: ${systemCh})`;
+
+          const desc =
+            `• **Kênh Chào mừng (Welcome):** ${welcomeCh}\n` +
+            `• **Kênh Tạm biệt (Leave):** ${leaveCh}\n` +
+            `• **Kênh hệ thống Server:** ${systemCh}\n\n` +
+            `*Sử dụng \`/setup notify set\` để chỉ định kênh riêng hoặc \`/setup notify reset\` để đặt lại về mặc định.*`;
+
+          const embed = EmbedBuilderUtility.createNotificationSetupResponseEmbed({
+            title: `Cấu Hình Kênh Thông Báo • ${interaction.guild.name}`,
+            description: desc,
+            success: true,
+          });
+          return await interaction.reply({ embeds: [embed] });
+        }
+
+        default: {
+          const errEmbed = EmbedBuilderUtility.createNotificationSetupResponseEmbed({
+            title: 'Hành Động Không Hợp Lệ',
+            description: `Hành động \`${action}\` không áp dụng cho cấu hình notify.`,
+            success: false,
+          });
+          return await interaction.reply({ embeds: [errEmbed], ephemeral: true });
+        }
+      }
+    }
   }
 
   /**

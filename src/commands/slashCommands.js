@@ -361,6 +361,55 @@ function buildSetupCommand() {
                 )
             )
         )
+    )
+    // 4. NHÓM CẤU HÌNH THÔNG BÁO VÀO/RA (NOTIFY: Welcome & Leave)
+    .addSubcommandGroup((group) =>
+      group
+        .setName('notify')
+        .setDescription('Cấu hình kênh nhận thông báo Chào mừng và Tạm biệt')
+        .addSubcommand((sub) =>
+          sub
+            .setName('set')
+            .setDescription('Chỉ định kênh nhận thông báo thành viên vào/ra Server')
+            .addStringOption((opt) =>
+              opt
+                .setName('type')
+                .setDescription('Loại thông báo cần cấu hình')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Chào mừng thành viên mới (welcome)', value: 'welcome' },
+                  { name: 'Tạm biệt thành viên rời đi (leave)', value: 'leave' },
+                  { name: 'Cả Chào mừng & Tạm biệt (all)', value: 'all' }
+                )
+            )
+            .addChannelOption((opt) =>
+              opt
+                .setName('channel')
+                .setDescription('Chọn kênh văn bản nhận thông báo')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('reset')
+            .setDescription('Đặt lại kênh thông báo về mặc định (Kênh hệ thống Server)')
+            .addStringOption((opt) =>
+              opt
+                .setName('type')
+                .setDescription('Loại thông báo cần đặt lại (mặc định tất cả)')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Tất cả thông báo (all)', value: 'all' },
+                  { name: 'Chỉ Chào mừng (welcome)', value: 'welcome' },
+                  { name: 'Chỉ Tạm biệt (leave)', value: 'leave' }
+                )
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('status')
+            .setDescription('Xem kênh thông báo Chào mừng & Tạm biệt hiện tại của Server')
+        )
     );
 }
 
@@ -468,7 +517,9 @@ function getSlashCommandsData() {
 }
 
 /**
- * Đăng ký Slash Command với Discord API
+/**
+ * Đăng ký Slash Command Toàn Cầu (Global) cho tất cả Server Discord
+ * Tự động xóa sạch Guild Commands cục bộ trên mọi server để chống trùng lặp lệnh (Double Slash Commands).
  * @param {import('discord.js').Client} client
  */
 async function registerSlashCommands(client) {
@@ -478,23 +529,30 @@ async function registerSlashCommands(client) {
   const rest = new REST({ version: '10' }).setToken(config.bot.token);
 
   try {
-    logger.info(`[SlashCommands] Đang đăng ký ${commands.length} lệnh Slash Command lên Discord...`);
+    logger.info(`[SlashCommands] Đang đồng bộ ${commands.length} Slash Command toàn cục (Global) cho tất cả Server...`);
 
-    // 1. Đăng ký trực tiếp cho Guild ID nếu có (Cập nhật tức thì 1 giây trên Server phát triển/test)
+    // 1. Dọn dẹp Guild Commands cũ trên Server test (nếu có cấu hình)
     if (config.bot.guildId) {
       await rest.put(
         Routes.applicationGuildCommands(client.user.id, config.bot.guildId),
-        { body: commands }
-      );
-      logger.success(`[SlashCommands] Đã đồng bộ tức thì Slash Commands mới lên Guild ID: ${config.bot.guildId}`);
+        { body: [] }
+      ).catch(() => {});
     }
 
-    // 2. Đăng ký toàn cục (Global) cho tất cả server
+    // 2. Dọn dẹp Guild Commands cũ trên tất cả các server bot đang tham gia
+    for (const [guildId] of client.guilds.cache) {
+      await rest.put(
+        Routes.applicationGuildCommands(client.user.id, guildId),
+        { body: [] }
+      ).catch(() => {});
+    }
+
+    // 3. Đăng ký duy nhất 1 bộ Global Commands
     await rest.put(
       Routes.applicationCommands(client.user.id),
       { body: commands }
     );
-    logger.success(`[SlashCommands] Đã đăng ký thành công ${commands.length} Slash Command toàn cục!`);
+    logger.success(`[SlashCommands] Đã đồng bộ thành công ${commands.length} Slash Command toàn cục và dọn sạch các lệnh cục bộ cũ!`);
   } catch (error) {
     logger.error(`[SlashCommands] Lỗi khi đăng ký Slash Command:`, error);
   }

@@ -23,8 +23,16 @@ const server = http.createServer((req, res) => {
   res.end(JSON.stringify({
     status: 'online',
     message: 'Discord Bot is running successfully!',
-    uptime: `${Math.floor(process.uptime())} seconds`,
-    timestamp: new Date().toISOString(),
+    timestamp: new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).format(new Date()),
   }));
 });
 

@@ -10,39 +10,37 @@ const logger = require('../utils/logger');
  * Tuân thủ Dependency Inversion và Single Responsibility.
  */
 class MemberNotificationService {
-  constructor() {
-    this.targetChannelId = config.channels.welcomeChannelId;
-  }
-
   /**
-   * Tìm kênh nhận thông báo phù hợp
+   * Tìm kênh nhận thông báo phù hợp cho từng Server:
+   * 1. Kênh tùy chỉnh đã cấu hình trong guildSettingsService
+   * 2. Kênh hệ thống mặc định (guild.systemChannel)
+   * 3. Kênh văn bản đầu tiên mà bot có quyền gửi tin nhắn & nhúng link
    * @param {import('discord.js').Guild} guild
    * @param {'welcome' | 'leave'} type - Loại thông báo
    * @returns {import('discord.js').TextChannel | null}
    */
   resolveNotificationChannel(guild, type = 'welcome') {
-    // 1. Xác định Channel ID dựa theo loại thông báo
-    const targetChannelId =
-      type === 'leave'
-        ? config.channels.leaveChannelId || config.channels.welcomeChannelId
-        : config.channels.welcomeChannelId;
+    if (!guild) return null;
 
-    if (targetChannelId) {
-      const channel = guild.channels.cache.get(targetChannelId);
+    // 1. Kiểm tra kênh tùy chỉnh đã được cấu hình cho Server qua lệnh /setup notify
+    const customChannelId = guildSettingsService.getNotificationChannel(guild.id, type);
+
+    if (customChannelId) {
+      const channel = guild.channels.cache.get(customChannelId);
       if (channel && channel.isTextBased()) {
         return channel;
       }
       logger.warn(
-        `Không tìm thấy kênh thông báo [${type.toUpperCase()}] với ID: ${targetChannelId} trong server "${guild.name}"`
+        `Không tìm thấy kênh thông báo [${type.toUpperCase()}] cấu hình sẵn với ID: ${customChannelId} trong server "${guild.name}". Đang dùng kênh mặc định.`
       );
     }
 
-    // 2. Fallback: Dùng System Channel của server
+    // 2. Mặc định: Dùng System Channel của Server (Kênh hệ thống)
     if (guild.systemChannel && guild.systemChannel.isTextBased()) {
       return guild.systemChannel;
     }
 
-    // 3. Fallback: Tìm kênh text đầu tiên mà bot có quyền gửi tin nhắn
+    // 3. Fallback: Tìm kênh text đầu tiên mà bot có đủ quyền gửi tin nhắn
     const defaultTextChannel = guild.channels.cache.find(
       (ch) =>
         ch.type === ChannelType.GuildText &&
