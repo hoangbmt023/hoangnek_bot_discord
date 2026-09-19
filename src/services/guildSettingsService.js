@@ -30,7 +30,7 @@ const DEFAULT_FEATURES = {
  */
 class GuildSettingsService {
   constructor() {
-    // Map lưu trữ: Map<guildId, Map<featureKey, boolean>>
+    // Map lưu trữ: Map<guildId, { features: Map<featureKey, boolean>, channels: { welcomeChannelId: string|null, leaveChannelId: string|null } }>
     this.settings = new Map();
     this.storagePath = path.resolve(process.cwd(), 'data', 'guild_settings.json');
     this.loadFromDisk();
@@ -62,6 +62,24 @@ class GuildSettingsService {
   }
 
   /**
+   * Chuẩn hóa loại kênh thông báo (welcome | leave | all)
+   * @param {string} [type]
+   * @returns {'welcome' | 'leave' | 'all'}
+   */
+  normalizeNotificationType(type = 'welcome') {
+    if (!type || typeof type !== 'string') return 'welcome';
+    const cleaned = type.replace(/[<>]/g, '').trim().toLowerCase();
+
+    if (cleaned === 'leave' || cleaned === 'tam_biet' || cleaned === 'roi_di' || cleaned === 'out' || cleaned === 'bye') {
+      return 'leave';
+    }
+    if (cleaned === 'all' || cleaned === 'tat_ca' || cleaned === 'tatca' || cleaned === 'both' || cleaned === 'chung') {
+      return 'all';
+    }
+    return 'welcome';
+  }
+
+  /**
    * Lấy thông tin hiển thị của tính năng
    * @param {string} feature
    * @returns {{ name: string, description: string }}
@@ -88,14 +106,32 @@ class GuildSettingsService {
         const rawData = fs.readFileSync(this.storagePath, 'utf8');
         const parsed = JSON.parse(rawData);
 
-        for (const [guildId, guildSettings] of Object.entries(parsed)) {
-          const map = new Map();
-          for (const [feat, state] of Object.entries(guildSettings)) {
-            map.set(feat, Boolean(state));
+        for (const [guildId, guildData] of Object.entries(parsed)) {
+          const featMap = new Map();
+          const channelConfig = {
+            welcomeChannelId: null,
+            leaveChannelId: null,
+          };
+
+          // Hỗ trợ cả cấu trúc cũ (chỉ lưu boolean) lẫn cấu trúc mới
+          if (typeof guildData === 'object' && guildData !== null) {
+            for (const [key, value] of Object.entries(guildData)) {
+              if (key === 'welcomeChannelId') {
+                channelConfig.welcomeChannelId = typeof value === 'string' ? value : null;
+              } else if (key === 'leaveChannelId') {
+                channelConfig.leaveChannelId = typeof value === 'string' ? value : null;
+              } else if (typeof value === 'boolean') {
+                featMap.set(key, value);
+              }
+            }
           }
-          this.settings.set(guildId, map);
+
+          this.settings.set(guildId, {
+            features: featMap,
+            channels: channelConfig,
+          });
         }
-        logger.info('[Settings] Đã nạp cấu hình tính năng các Guild từ bộ nhớ.');
+        logger.info('[Settings] Đã nạp cấu hình tính năng & kênh thông báo các Guild từ bộ nhớ.');
       }
     } catch (error) {
       logger.warn(`[Settings] Không thể nạp file guild_settings.json: ${error.message}`);
@@ -108,10 +144,16 @@ class GuildSettingsService {
   saveToDisk() {
     try {
       const exportData = {};
-      for (const [guildId, featMap] of this.settings.entries()) {
+      for (const [guildId, guildConfig] of this.settings.entries()) {
         exportData[guildId] = {};
-        for (const [feat, state] of featMap.entries()) {
+        for (const [feat, state] of guildConfig.features.entries()) {
           exportData[guildId][feat] = state;
+        }
+        if (guildConfig.channels.welcomeChannelId) {
+          exportData[guildId].welcomeChannelId = guildConfig.channels.welcomeChannelId;
+        }
+        if (guildConfig.channels.leaveChannelId) {
+          exportData[guildId].leaveChannelId = guildConfig.channels.leaveChannelId;
         }
       }
 
@@ -122,13 +164,19 @@ class GuildSettingsService {
   }
 
   /**
-   * Lấy Map cài đặt của Guild
+   * Lấy hoặc khởi tạo cấu trúc cài đặt của Guild
    * @param {string} guildId
-   * @returns {Map<string, boolean>}
+   * @returns {{ features: Map<string, boolean>, channels: { welcomeChannelId: string|null, leaveChannelId: string|null } }}
    */
-  getGuildMap(guildId) {
+  getGuildConfig(guildId) {
     if (!this.settings.has(guildId)) {
-      this.settings.set(guildId, new Map());
+      this.settings.set(guildId, {
+        features: new Map(),
+        channels: {
+          welcomeChannelId: null,
+          leaveChannelId: null,
+        },
+      });
     }
     return this.settings.get(guildId);
   }
@@ -144,9 +192,9 @@ class GuildSettingsService {
     const normKey = this.normalizeFeature(feature);
     if (!normKey || normKey === 'all') return true;
 
-    const guildMap = this.getGuildMap(guildId);
-    if (guildMap.has(normKey)) {
-      return guildMap.get(normKey);
+    const guildConfig = this.getGuildConfig(guildId);
+    if (guildConfig.features.has(normKey)) {
+      return guildConfig.features.get(normKey);
     }
 
     // Mặc định là true nếu chưa cấu hình
@@ -166,14 +214,14 @@ class GuildSettingsService {
       return { success: false, feature, featureName: feature, enabled };
     }
 
-    const guildMap = this.getGuildMap(guildId);
+    const guildConfig = this.getGuildConfig(guildId);
 
     if (normKey === 'all') {
       for (const feat of Object.keys(DEFAULT_FEATURES)) {
-        guildMap.set(feat, enabled);
+        guildConfig.features.set(feat, enabled);
       }
     } else {
-      guildMap.set(normKey, enabled);
+      guildConfig.features.set(normKey, enabled);
     }
 
     this.saveToDisk();
@@ -216,6 +264,93 @@ class GuildSettingsService {
       });
     }
     return result;
+  }
+
+  /**
+   * Cài đặt kênh thông báo (welcome / leave / all) cho Server
+   * @param {string} guildId
+   * @param {'welcome' | 'leave' | 'all'} type
+   * @param {string} channelId
+   * @returns {{ success: boolean, type: string, channelId: string }}
+   */
+  setNotificationChannel(guildId, type = 'welcome', channelId) {
+    const normType = this.normalizeNotificationType(type);
+    const guildConfig = this.getGuildConfig(guildId);
+
+    if (normType === 'all') {
+      guildConfig.channels.welcomeChannelId = channelId;
+      guildConfig.channels.leaveChannelId = channelId;
+    } else if (normType === 'leave') {
+      guildConfig.channels.leaveChannelId = channelId;
+    } else {
+      guildConfig.channels.welcomeChannelId = channelId;
+    }
+
+    this.saveToDisk();
+    logger.info(`[Settings] Guild ${guildId}: Đã cài đặt kênh thông báo [${normType}] -> ${channelId}`);
+
+    return {
+      success: true,
+      type: normType,
+      channelId,
+    };
+  }
+
+  /**
+   * Lấy ID kênh thông báo đã cài đặt cho Server (nếu có)
+   * @param {string} guildId
+   * @param {'welcome' | 'leave'} type
+   * @returns {string | null}
+   */
+  getNotificationChannel(guildId, type = 'welcome') {
+    if (!guildId) return null;
+    const guildConfig = this.getGuildConfig(guildId);
+    if (type === 'leave') {
+      return guildConfig.channels.leaveChannelId || null;
+    }
+    return guildConfig.channels.welcomeChannelId || null;
+  }
+
+  /**
+   * Lấy toàn bộ cấu hình kênh thông báo của Guild
+   * @param {string} guildId
+   * @returns {{ welcomeChannelId: string | null, leaveChannelId: string | null }}
+   */
+  getNotificationSettings(guildId) {
+    if (!guildId) return { welcomeChannelId: null, leaveChannelId: null };
+    const guildConfig = this.getGuildConfig(guildId);
+    return {
+      welcomeChannelId: guildConfig.channels.welcomeChannelId,
+      leaveChannelId: guildConfig.channels.leaveChannelId,
+    };
+  }
+
+  /**
+   * Đặt lại kênh thông báo về mặc định (kênh hệ thống)
+   * @param {string} guildId
+   * @param {'welcome' | 'leave' | 'all'} type
+   * @returns {{ success: boolean, type: string }}
+   */
+  resetNotificationChannel(guildId, type = 'all') {
+    const normType = this.normalizeNotificationType(type);
+    const guildConfig = this.getGuildConfig(guildId);
+
+    if (normType === 'all') {
+      guildConfig.channels.welcomeChannelId = null;
+      guildConfig.channels.leaveChannelId = null;
+    } else if (normType === 'leave') {
+      guildConfig.channels.leaveChannelId = null;
+    } else {
+      guildConfig.channels.welcomeChannelId = null;
+    }
+
+    this.saveToDisk();
+    logger.info(`[Settings] Guild ${guildId}: Đã đặt lại kênh thông báo [${normType}] về mặc định hệ thống.`);
+
+    return {
+      success: true,
+      type: normType,
+    };
   }
 }
 

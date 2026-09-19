@@ -18,63 +18,59 @@ Tài liệu này hướng dẫn chi tiết cách tạo ứng dụng Bot trên Di
 1. Ở menu bên trái, chọn mục **Bot**.
 2. Nhấn nút **Reset Token** (hoặc **View Token**) và sao chép mã Token.
    - ⚠️ **Cảnh báo**: Tuyệt đối không chia sẻ Token này cho bất kỳ ai hoặc đẩy lên GitHub công khai!
-   - Dán token vừa lấy vào biến `DISCORD_TOKEN=` trong file `.env.development`.
-3. Cuộn trang xuống phần **Privileged Gateway Intents**:
+   - Dán token vừa lấy vào biến `DISCORD_TOKEN=` trong file `.env.development` (hoặc `.env.production`).
+3. Trong phần **Authorization Settings**:
+   - Đảm bảo bật công tắc **PUBLIC BOT** (Để người khác và các server khác có thể mời bot vào).
+4. Cuộn trang xuống phần **Privileged Gateway Intents**:
    - Bật **PRESENCE INTENT** (Tùy chọn)
    - Bật **SERVER MEMBERS INTENT** (**BẮT BUỘC** - Để nhận sự kiện thành viên vào/rời server và lấy Role).
    - Bật **MESSAGE CONTENT INTENT** (**BẮT BUỘC** - Để bot đọc nội dung tin nhắn phục vụ lọc ngôn từ độc hại và nhận diện lệnh prefix `s!`, `!wl`, `!feature`).
-4. Nhấn **Save Changes** ở góc dưới.
+5. Nhấn **Save Changes** ở góc dưới.
 
 ---
 
-## Bước 3: Lấy Client ID & Mời Bot vào Server
+## Bước 3: Lấy Client ID & Mời Bot vào Nhiều Server (Multi-Server)
 
-1. Ở menu bên trái, chọn mục **OAuth2** -> **OAuth2 URL Generator**.
-2. Trong bảng **Scopes**:
-   - Tích chọn `bot`
-   - Tích chọn `applications.commands` (để dùng Slash Commands sau này)
-3. Trong bảng **Bot Permissions** xuất hiện phía dưới:
-   - Tích chọn các quyền:
-     - **General/Text**: `View Channels`, `Send Messages`, `Embed Links`, `Attach Files`, `Read Message History`, `Use External Emojis`, `Add Reactions`
-     - **Voice (Cho tính năng phát nhạc)**: `Connect` (Kết nối voice), `Speak` (Phát âm thanh), `Use Voice Activity`
-4. Sao chép đường dẫn **Generated URL** ở cuối trang.
-5. Dán URL vào trình duyệt, chọn Server bạn muốn thêm Bot và nhấn **Authorize** (Ủy quyền).
-
----
-
-## Bước 4: Lấy Server ID (GUILD_ID) & ID Kênh Thông Báo (Channel ID)
-
-### 4.1 Bật Developer Mode trên Discord (Chỉ cần làm 1 lần)
-1. Mở ứng dụng Discord trên máy tính hoặc trình duyệt.
-2. Vào **User Settings** (Cài đặt người dùng - biểu tượng bánh răng ở góc dưới bên trái).
-3. Chọn mục **Advanced** (Nâng cao) trong danh mục App Settings.
-4. Bật công tắc **Developer Mode** (Chế độ nhà phát triển).
+### 3.1 Tạo Link Mời Bot Đa Năng
+1. Vào mục **General Information** -> Copy **APPLICATION ID** (Dán vào `CLIENT_ID=` trong file `.env`).
+2. Ở menu bên trái, chọn mục **OAuth2** -> **OAuth2 URL Generator**:
+   - **Scopes**: Tích chọn `bot` và `applications.commands` (để dùng Slash Commands).
+   - **Bot Permissions**:
+     - **General/Text**: `Administrator` (hoặc `Manage Roles`, `Manage Channels`, `View Channels`, `Send Messages`, `Embed Links`, `Attach Files`, `Read Message History`, `Use External Emojis`, `Moderate Members`)
+     - **Voice**: `Connect`, `Speak`, `Use Voice Activity`
+3. Hoặc bạn có thể dùng trực tiếp đường link chuẩn sau (thay `YOUR_CLIENT_ID` bằng Client ID của bạn):
+   ```
+   https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands
+   ```
+4. Mở link trên trình duyệt -> Chọn bất kỳ Server nào bạn có quyền Quản lý máy chủ (Manage Server) hoặc Admin -> Nhấn **Authorize** (Ủy quyền).
 
 ---
 
-### 4.2 Lấy Server ID (`GUILD_ID`)
-1. Nhìn vào thanh danh sách Server bên trái Discord.
-2. **Click chuột phải vào icon của Server** bạn muốn dùng.
-   *(Hoặc click chuột phải vào tên Server ở góc trên cùng của khung chat)*.
-3. Chọn **Copy Server ID** (Sao chép ID máy chủ) ở dưới cùng của menu.
-4. Dán ID này vào biến `GUILD_ID=` trong file `.env.development`.
+## Bước 4: Cấu Hình Kênh Thông Báo Vào/Ra & Lệnh Server
 
-> [!TIP]
-> `GUILD_ID` là ID duy nhất đại diện cho Server Discord của bạn, thường dùng để đăng ký Slash Commands tức thì khi test hoặc giới hạn hoạt động của bot trong 1 server cụ thể.
+### 4.1 Cơ chế thông báo Vào/Ra Động (Không cần cài đặt .env)
+Bot được thiết kế hoạt động độc lập trên **nhiều Server cùng lúc (Multi-Guild)**. Bạn **không cần** điền ID kênh vào `.env` nữa:
+- **Mặc định**: Khi thành viên vào hoặc rời server, Bot sẽ tự động gửi thông báo vào **Kênh hệ thống (System Channel)** của Server.
+- **Tùy chỉnh kênh riêng**: Quản trị viên của từng Server có thể chỉ định kênh mong muốn bằng lệnh Discord:
+  ```
+  /setup notify set type:welcome channel:#chao-mung
+  /setup notify set type:leave channel:#tam-biet
+  /setup notify set type:all channel:#general
+  ```
+  Hoặc bằng lệnh Prefix:
+  ```
+  s!setup notify welcome #chao-mung
+  s!setup notify leave #tam-biet
+  s!setup welcome #chao-mung
+  s!setup notify reset   (Khôi phục về kênh hệ thống mặc định)
+  s!setup notify status  (Xem cấu hình kênh hiện tại của server)
+  ```
 
 ---
 
-### 4.3 Lấy ID Kênh Thông Báo (`WELCOME_CHANNEL_ID` & `LEAVE_CHANNEL_ID`)
-Bot hỗ trợ gửi thông báo vào **2 kênh riêng biệt**:
-1. **Kênh Chào mừng (Thành viên vào)**:
-   - Click chuột phải vào kênh nhận tin chào mừng (ví dụ `#welcome` hoặc `#chao-mung`) -> Chọn **Copy Channel ID**.
-   - Dán vào biến: `WELCOME_CHANNEL_ID=` trong `.env.development`.
-2. **Kênh Tạm biệt (Thành viên rời)**:
-   - Click chuột phải vào kênh nhận tin tạm biệt (ví dụ `#goodbye` hoặc `#tam-biet`) -> Chọn **Copy Channel ID**.
-   - Dán vào biến: `LEAVE_CHANNEL_ID=` trong `.env.development`.
-
-> [!NOTE]
-> Nếu bạn muốn gửi **cả 2 thông báo vào chung 1 kênh**, bạn chỉ cần điền `WELCOME_CHANNEL_ID` và để trống `LEAVE_CHANNEL_ID`.
+### 4.2 Biến Môi Trường `GUILD_ID` (Tùy chọn khi phát triển)
+- `GUILD_ID` trong `.env` là **tùy chọn**, chỉ dùng khi lập trình viên muốn đồng bộ Slash Commands tức thì (trong 1 giây) lên 1 server test.
+- Khi triển khai thực tế (Production), bạn có thể **để trống `GUILD_ID=`**, Bot sẽ tự động đăng ký Slash Commands toàn cục (Global) cho tất cả Server!
 
 ---
 

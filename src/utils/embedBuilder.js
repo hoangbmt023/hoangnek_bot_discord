@@ -264,17 +264,21 @@ class EmbedBuilderUtility {
         `• **5 - 6 cảnh cáo:** Trục xuất khỏi Server (Kick).\n` +
         `• **7+ cảnh cáo:** Cấm vĩnh viễn khỏi Server (Ban).\n\n` +
         `*Cảnh báo được gửi riêng qua tin nhắn trực tiếp (DM) để không làm loãng kênh chat.*`;
-    } else if (norm === 'notifications' || norm === 'welcome' || norm === 'leave') {
+    } else if (norm === 'notifications' || norm === 'welcome' || norm === 'leave' || norm === 'notify') {
       title = 'HƯỚNG DẪN • THÔNG BÁO THÀNH VIÊN';
       desc =
         `## Thông Báo Chào Mừng & Tạm Biệt\n` +
-        `> Tự động phát hiện kênh thích hợp (welcome, general, chat-tong...) để gửi thiệp Embed.\n\n` +
-        `**1. Chào mừng thành viên mới (Welcome):**\n` +
-        `• Hiển thị Avatar, tên người dùng, thứ tự thành viên và ngày tạo tài khoản Discord.\n\n` +
-        `**2. Tạm biệt thành viên (Leave):**\n` +
-        `• Hiển thị Avatar, tên người dùng, thời gian đã gắn bó với Server và số lượng thành viên còn lại.\n\n` +
-        `**Bật/Tắt module:**\n` +
-        `• \`/setup feature enable feature:welcome\``;
+        `> Mặc định gửi vào Kênh hệ thống (System Channel). Quản trị viên có thể tùy chỉnh kênh riêng.\n\n` +
+        `**1. Cài đặt kênh thông báo (/setup notify & s!setup):**\n` +
+        `• \`/setup notify set type:welcome channel:#chao-mung\`\n` +
+        `• \`/setup notify set type:leave channel:#tam-biet\`\n` +
+        `• \`/setup notify set type:all channel:#general\`\n` +
+        `• \`s!setup notify welcome #chao-mung\` (hoặc \`s!setup welcome #chao-mung\`)\n` +
+        `• \`s!setup notify reset\` (đặt lại về kênh hệ thống)\n` +
+        `• \`s!setup notify status\` (xem kênh đang cài đặt)\n\n` +
+        `**2. Bật/Tắt module:**\n` +
+        `• \`/setup feature enable feature:welcome\`\n` +
+        `• \`/setup feature disable feature:leave\``;
     } else if (norm === 'music' || norm === 'nhac') {
       title = 'HƯỚNG DẪN • HỆ THỐNG PHÁT NHẠC (MUSIC)';
       desc =
@@ -299,16 +303,20 @@ class EmbedBuilderUtility {
       title = 'HƯỚNG DẪN • TRUNG TÂM CẤU HÌNH (/setup)';
       desc =
         `## Trung Tâm Quản Trị Hệ Thống (/setup & s!setup)\n` +
-        `> Cấu trúc trực quan chia làm 3 nhóm: \`channel\`, \`whitelist\`, \`feature\`.\n\n` +
-        `**1. Cấu hình Kênh (channel):**\n` +
+        `> Cấu trúc trực quan chia làm 4 nhóm: \`channel\`, \`notify\`, \`whitelist\`, \`feature\`.\n\n` +
+        `**1. Cấu hình Kênh Lệnh & Nhạc (channel):**\n` +
         `• \`/setup channel add channel:#music-chat\`\n` +
         `• \`s!setup channel add #music-chat\`\n` +
         `• \`s!setup channel list\`\n\n` +
-        `**2. Cấu hình Bật/Tắt Tính Năng (feature):**\n` +
+        `**2. Cấu hình Kênh Thông Báo Vào/Ra (notify):**\n` +
+        `• \`/setup notify set type:welcome channel:#chao-mung\`\n` +
+        `• \`s!setup notify welcome #chao-mung\`\n` +
+        `• \`s!setup notify status\`\n\n` +
+        `**3. Cấu hình Bật/Tắt Tính Năng (feature):**\n` +
         `• \`/setup feature enable feature:moderation\`\n` +
         `• \`s!setup feature disable moderation\`\n` +
         `• \`s!setup feature status moderation\`\n\n` +
-        `**3. Cấu hình Whitelist (whitelist):**\n` +
+        `**4. Cấu hình Whitelist (whitelist):**\n` +
         `• \`/setup whitelist add feature:moderation users:@user1\`\n` +
         `• \`s!setup whitelist add moderation @user1\`\n\n` +
         `*Yêu cầu quyền: Quản trị viên (Administrator / Manage Server).*`;
@@ -318,13 +326,16 @@ class EmbedBuilderUtility {
       desc =
         `## Danh Sách Lệnh & Tính Năng\n` +
         `> Sử dụng \`/help <chức_năng>\` để xem chi tiết từng mục, hoặc \`s!help\` để xem nhanh lệnh nhạc.\n\n` +
-        `**1. Phát Nhạc (Music - Lệnh \`s!\`):**\n` +
+        `**1. 🎵 Phát Nhạc (Music - Lệnh \`s!\` & \`/music\`):**\n` +
         `• \`s!play\`, \`s!pause\`, \`s!skip\`, \`s!queue\`, \`s!np\`, \`s!vol\`, \`s!loop\`, \`s!leave\`\n` +
         `  *Xem chi tiết: \`s!help\` hoặc \`/help feature:music\`*\n\n` +
-        `**2. Trung Tâm Cấu Hình (/setup & s!setup):**\n` +
-        `• Quản lý phân quyền kênh, bật/tắt tính năng, và danh sách Whitelist.\n` +
+        `**2. 🌟 Thông Báo Vào/Ra (Welcome & Leave):**\n` +
+        `• Tự động gửi vào Kênh hệ thống hoặc kênh tùy chỉnh bằng \`/setup notify set\` / \`s!setup notify\`\n` +
+        `  *Xem chi tiết: \`/help feature:notifications\`*\n\n` +
+        `**3. ⚙️ Trung Tâm Cấu Hình (/setup & s!setup):**\n` +
+        `• Quản lý phân quyền kênh lệnh, kênh thông báo, bật/tắt tính năng, và danh sách Whitelist.\n` +
         `  *Xem chi tiết: \`/help feature:setup\`*\n\n` +
-        `**3. Kiểm Duyệt Tự Động (Moderation):**\n` +
+        `**4. 🛡️ Kiểm Duyệt Tự Động (Moderation):**\n` +
         `• Tự động quét và xử lý ngôn từ xúc phạm / thù ghét thời gian thực.\n` +
         `  *Xem chi tiết: \`/help feature:moderation\`*`;
     }
@@ -590,6 +601,31 @@ class EmbedBuilderUtility {
       .setDescription(description)
       .setFooter({
         text: 'Hoangnek Bot • Cấu hình phân quyền kênh',
+      })
+      .setTimestamp();
+  }
+
+  /**
+   * Tạo Embed thông báo kết quả cấu hình kênh thông báo (/setup notify)
+   * @param {object} params
+   * @param {string} params.title
+   * @param {string} params.description
+   * @param {boolean} [params.success=true]
+   * @param {boolean} [params.isDestructive=false]
+   * @returns {EmbedBuilder}
+   */
+  static createNotificationSetupResponseEmbed({ title, description, success = true, isDestructive = false }) {
+    const color = !success || isDestructive ? 0xed4245 : 0x5865f2;
+
+    return new EmbedBuilder()
+      .setColor(color)
+      .setAuthor({
+        name: 'HỆ THỐNG CẤU HÌNH THÔNG BÁO • SETUP NOTIFY',
+      })
+      .setTitle(title)
+      .setDescription(description)
+      .setFooter({
+        text: 'Hoangnek Bot • Thông báo Chào mừng & Tạm biệt',
       })
       .setTimestamp();
   }

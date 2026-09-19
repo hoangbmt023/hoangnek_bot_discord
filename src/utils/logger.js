@@ -28,16 +28,35 @@ const colors = {
   magenta: '\x1b[35m',
 };
 
+/**
+ * Lấy Timestamp theo Giờ Việt Nam (Asia/Ho_Chi_Minh - GMT+7)
+ * Định dạng chuẩn: YYYY-MM-DD HH:mm:ss
+ */
 const getTimestamp = () => {
-  return new Date().toISOString().replace('T', ' ').substring(0, 19);
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+  return formatter.format(new Date());
 };
 
+/**
+ * Lấy chuỗi ngày YYYY-MM-DD theo Giờ Việt Nam (đặt tên file daily log)
+ */
 const getDateString = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date());
 };
 
 /**
