@@ -82,6 +82,19 @@ class SetupCommandHandler {
       return await this.handleNotifyShortcut(message, 'leave', args.slice(1));
     }
 
+    // 2. CẤU HÌNH MODEL AI (s!setup ai / s!setup model / s!setup primary)
+    if (firstArg === 'ai' || firstArg === 'model') {
+      return await this.handleAICommand(message, args.slice(1));
+    }
+    if (firstArg === 'primary' || firstArg === 'set-primary') {
+      return await this.handleAICommand(message, ['primary', ...args.slice(1)]);
+    }
+
+    // 3. CẤU HÌNH DỮ LIỆU SERVER CHO AI (s!setup knowledge / s!setup doc / s!setup data)
+    if (firstArg === 'knowledge' || firstArg === 'doc' || firstArg === 'data') {
+      return await this.handleKnowledgeCommand(message, args.slice(1));
+    }
+
     const knownFeatures = ['music', 'moderation', 'all'];
     const knownTargets = ['channel', 'kenh', 'whitelist', 'wl', 'feature', 'state', 'toggle'];
 
@@ -397,6 +410,493 @@ class SetupCommandHandler {
 
     const embed = EmbedBuilderUtility.createNotificationSetupResponseEmbed({
       title: `Cấu Hình Kênh Thông Báo • ${guild.name}`,
+      description: desc,
+      success: true,
+    });
+    return await message.reply({ embeds: [embed] });
+  }
+
+  /**
+   * Xử lý lệnh cấu hình AI Model (s!setup ai set/primary/reset/status)
+   * @param {import('discord.js').Message} message
+   * @param {string[]} aiArgs
+   */
+  async handleAICommand(message, aiArgs) {
+    const { guild } = message;
+    const action = (aiArgs[0] || 'status').toLowerCase();
+
+    // 1. Cài đặt Provider chính: s!setup ai set-primary <gemini|openrouter> hoặc s!setup ai primary <gemini|openrouter>
+    if (action === 'set-primary' || action === 'primary') {
+      const provider = (aiArgs[1] || '').toLowerCase();
+
+      if (!provider || (provider !== 'gemini' && provider !== 'openrouter')) {
+        const errEmbed = EmbedBuilderUtility.createAISetupResponseEmbed({
+          title: 'Nhà Cung Cấp Không Hợp Lệ',
+          description:
+            '❌ Vui lòng chọn nhà cung cấp AI muốn làm chính: `gemini` (Google Gemini) hoặc `openrouter` (OpenRouter).\n\n' +
+            '**Cú pháp:** `s!setup ai primary <gemini|openrouter>`\n' +
+            '**Ví dụ:** `s!setup ai primary openrouter` hoặc `s!setup primary gemini`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      guildSettingsService.setAIPrimaryProvider(guild.id, provider);
+      const providerName = provider === 'openrouter' ? 'OpenRouter' : 'Google Gemini';
+      const fallbackName = provider === 'openrouter' ? 'Google Gemini' : 'OpenRouter';
+
+      const embed = EmbedBuilderUtility.createAISetupResponseEmbed({
+        title: 'Cài Đặt Nhà Cung Cấp AI Chính Thành Công',
+        description:
+          `Đã chuyển **${providerName}** thành **Nhà cung cấp AI Chính (Primary)** cho Server:\n\n` +
+          `• 🌟 **Chính (Ưu tiên gọi trước):** \`${providerName}\`\n` +
+          `• 🔄 **Dự phòng (Fallback):** \`${fallbackName}\`\n\n` +
+          `> *Mỗi khi gọi \`!ask\` hoặc \`/ask\`, bot sẽ ưu tiên gọi ${providerName} trước, nếu có sự cố sẽ tự động fallback sang ${fallbackName}.*`,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 2. Cài đặt model: s!setup ai set <gemini|openrouter> <model_name>
+    if (action === 'set' || action === 'set-model') {
+      const provider = (aiArgs[1] || '').toLowerCase();
+      const model = aiArgs.slice(2).join(' ').trim();
+
+      if (!provider || (provider !== 'gemini' && provider !== 'openrouter')) {
+        const errEmbed = EmbedBuilderUtility.createAISetupResponseEmbed({
+          title: 'Nhà Cung Cấp Không Hợp Lệ',
+          description:
+            '❌ Vui lòng chọn nhà cung cấp AI là `gemini` (Google Gemini) hoặc `openrouter` (OpenRouter).\n\n' +
+            '**Cú pháp:** `s!setup ai set <gemini|openrouter> <tên_model>`\n' +
+            '**Ví dụ:** `s!setup ai set gemini gemini-3.6-flash`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      if (!model) {
+        const errEmbed = EmbedBuilderUtility.createAISetupResponseEmbed({
+          title: 'Thiếu Tên Model AI',
+          description:
+            '❌ Vui lòng nhập tên model AI bạn muốn sử dụng.\n\n' +
+            '**Ví dụ Gemini:** `gemini-3.6-flash`, `gemini-3.5-flash-lite`\n' +
+            '**Ví dụ OpenRouter:** `openrouter/free`, `google/gemma-4-31b-it:free`, `qwen/qwen3.8-27b:free`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      guildSettingsService.setAIModel(guild.id, provider, model);
+      const providerName = provider === 'gemini' ? 'Google Gemini' : 'OpenRouter';
+
+      const embed = EmbedBuilderUtility.createAISetupResponseEmbed({
+        title: 'Cài Đặt AI Model Thành Công',
+        description:
+          `Đã cấu hình Model cho **${providerName}** tại Server:\n` +
+          `• **Model:** \`${model}\`\n\n` +
+          `> *Model này sẽ được ưu tiên sử dụng mỗi khi thành viên gọi lệnh \`!ask\` hoặc \`/ask\`.*`,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 3. Đặt lại model: s!setup ai reset [gemini|openrouter|primary|all]
+    if (action === 'reset' || action === 'clear' || action === 'reset-model') {
+      const provider = (aiArgs[1] || 'all').toLowerCase();
+      guildSettingsService.resetAIModel(guild.id, provider);
+
+      let provText = 'toàn bộ cấu hình AI (Gemini, OpenRouter & Provider chính)';
+      if (provider === 'gemini') provText = 'Google Gemini';
+      else if (provider === 'openrouter') provText = 'OpenRouter';
+      else if (provider === 'primary') provText = 'Nhà cung cấp AI chính (Primary Provider)';
+
+      const embed = EmbedBuilderUtility.createAISetupResponseEmbed({
+        title: 'Đặt Lại AI Model Về Mặc Định',
+        description:
+          `Đã khôi phục Model của **${provText}** về cấu hình mặc định của Bot.\n\n` +
+          `> *Sử dụng \`s!setup ai status\` để kiểm tra Model hiện tại.*`,
+        success: true,
+        isDestructive: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 4. Xem trạng thái: s!setup ai status / s!setup ai
+    const aiSettings = guildSettingsService.getAISettings(guild.id);
+
+    const primaryName = aiSettings.primaryProvider === 'openrouter' ? 'OpenRouter' : 'Google Gemini';
+    const primaryStatus = aiSettings.isCustomPrimary
+      ? `\`${primaryName}\` *(Tùy chỉnh riêng Server)*`
+      : `\`${primaryName}\` *(Mặc định hệ thống)*`;
+
+    const geminiStatus = aiSettings.isCustomGemini
+      ? `\`${aiSettings.geminiModel}\` *(Tùy chỉnh riêng Server)*`
+      : `\`${aiSettings.geminiModel}\` *(Mặc định hệ thống)*`;
+
+    const openrouterStatus = aiSettings.isCustomOpenrouter
+      ? `\`${aiSettings.openrouterModel}\` *(Tùy chỉnh riêng Server)*`
+      : `\`${aiSettings.openrouterModel}\` *(Mặc định hệ thống)*`;
+
+    const desc =
+      `Thông tin mô hình AI đang phục vụ cho Server **${guild.name}**:\n\n` +
+      `• 🌟 **Nhà cung cấp chính (Primary):** ${primaryStatus}\n` +
+      `• 🔷 **Google Gemini:** ${geminiStatus}\n` +
+      `• 🔶 **OpenRouter:** ${openrouterStatus}\n\n` +
+      `**Các câu lệnh tùy chỉnh:**\n` +
+      `• Đổi provider chính: \`s!setup ai primary <gemini|openrouter>\` *(hoặc \`s!setup primary <gemini|openrouter>\`)*\n` +
+      `• Đổi model: \`s!setup ai set <gemini|openrouter> <tên_model>\`\n` +
+      `• Đặt lại mặc định: \`s!setup ai reset [gemini|openrouter|primary|all]\``;
+
+    const embed = EmbedBuilderUtility.createAISetupResponseEmbed({
+      title: `Cấu Hình AI Model • ${guild.name}`,
+      description: desc,
+      success: true,
+    });
+    return await message.reply({ embeds: [embed] });
+  }
+
+  /**
+   * Trích xuất Channel ID và Message ID từ link tin nhắn hoặc ID
+   * @param {string} input
+   * @param {string} [fallbackChannelId]
+   * @returns {{ channelId: string, messageId: string } | null}
+   */
+  extractMessageInfo(input, fallbackChannelId) {
+    if (!input) return null;
+    const linkMatch = input.match(/discord(?:app)?\.com\/channels\/(?:\d+|@me)\/(\d+)\/(\d+)/i);
+    if (linkMatch) {
+      return { channelId: linkMatch[1], messageId: linkMatch[2] };
+    }
+    const idMatch = input.match(/^(\d{17,20})$/);
+    if (idMatch && fallbackChannelId) {
+      return { channelId: fallbackChannelId, messageId: idMatch[1] };
+    }
+    return null;
+  }
+
+  /**
+   * Xử lý lệnh cấu hình dữ liệu Server cho AI (s!setup knowledge channel/message/text/reset/status)
+   * @param {import('discord.js').Message} message
+   * @param {string[]} knowledgeArgs
+   */
+  async handleKnowledgeCommand(message, knowledgeArgs) {
+    const { guild } = message;
+    const action = (knowledgeArgs[0] || 'status').toLowerCase();
+
+    // 1. Thêm kênh dữ liệu: s!setup knowledge channel <#channel> hoặc s!setup knowledge add-channel <#channel>
+    if (action === 'channel' || action === 'add-channel' || action === 'set-channel') {
+      const channelArg = knowledgeArgs[1];
+      const channelId = this.extractChannelId(channelArg);
+
+      if (!channelId || !guild.channels.cache.has(channelId)) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Kênh Không Hợp Lệ',
+          description:
+            '❌ Vui lòng tag kênh (ví dụ: `#noi-quy`) hoặc cung cấp ID kênh hợp lệ trong Server.\n\n' +
+            '**Cú pháp:** `s!setup knowledge channel #channel`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const addResult = guildSettingsService.addKnowledgeChannel(guild.id, channelId);
+
+      if (addResult.alreadyExists) {
+        const warnEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Kênh Đã Tồn Tại',
+          description: `Kênh <#${channelId}> đã có trong danh sách kênh tri thức rồi.`,
+          success: false,
+        });
+        return await message.reply({ embeds: [warnEmbed] });
+      }
+
+      const channelListDisplay = addResult.channelIds.map((id) => `<#${id}>`).join('\n• ') || '*Trống*';
+      const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+        title: 'Thêm Kênh Tri Thức Thành Công',
+        description:
+          `Đã thêm kênh <#${channelId}> vào danh sách **Kênh dữ liệu máy chủ** cho AI.\n\n` +
+          `**Danh sách kênh tri thức hiện tại (${addResult.channelIds.length} kênh):**\n• ${channelListDisplay}\n\n` +
+          `> *AI sẽ đọc tin nhắn ghim từ tất cả các kênh này khi trả lời câu hỏi.*`,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 1b. Xóa kênh dữ liệu: s!setup knowledge remove-channel <#channel>
+    if (action === 'remove-channel' || action === 'remove') {
+      const channelArg = knowledgeArgs[1];
+      const channelId = this.extractChannelId(channelArg);
+
+      if (!channelId) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Thiếu Kênh',
+          description:
+            '❌ Vui lòng tag kênh hoặc cung cấp ID kênh cần xóa.\n\n' +
+            '**Cú pháp:** `s!setup knowledge remove-channel #channel`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const removeResult = guildSettingsService.removeKnowledgeChannel(guild.id, channelId);
+
+      if (removeResult.notFound) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Kênh Không Có Trong Danh Sách',
+          description: `Kênh <#${channelId}> không nằm trong danh sách kênh tri thức.`,
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const remainingDisplay = removeResult.channelIds.length
+        ? removeResult.channelIds.map((id) => `<#${id}>`).join('\n• ')
+        : '*Không có kênh nào*';
+      const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+        title: 'Xóa Kênh Tri Thức Thành Công',
+        description:
+          `Đã xóa kênh <#${channelId}> khỏi danh sách.\n\n` +
+          `**Kênh còn lại (${removeResult.channelIds.length} kênh):**\n• ${remainingDisplay}`,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 2. Thêm tin nhắn dữ liệu cụ thể: s!setup knowledge message <link_or_id> [#channel] hoặc s!setup knowledge add-message <link_or_id> [#channel]
+    if (action === 'message' || action === 'add-message' || action === 'set-message' || action === 'msg') {
+      const msgArg = knowledgeArgs[1];
+      const channelArg = knowledgeArgs[2];
+      const fallbackChannelId = this.extractChannelId(channelArg) || message.channelId;
+      const msgInfo = this.extractMessageInfo(msgArg, fallbackChannelId);
+
+      if (!msgInfo) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Tin Nhắn Không Hợp Lệ',
+          description:
+            '❌ Vui lòng cung cấp **Link tin nhắn Discord** hoặc **ID tin nhắn kèm kênh**.\n\n' +
+            '**Cách lấy link tin nhắn:** Click chuột phải vào tin nhắn -> chọn *Copy Message Link* (Sao chép liên kết tin nhắn).\n\n' +
+            '**Cú pháp:** `s!setup knowledge message <link_tin_nhắn>`\n' +
+            '**Hoặc:** `s!setup knowledge message <message_id> #channel`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      let targetChannel = guild.channels.cache.get(msgInfo.channelId);
+      if (!targetChannel) {
+        targetChannel = await guild.channels.fetch(msgInfo.channelId).catch(() => null);
+      }
+
+      if (!targetChannel || !targetChannel.isTextBased()) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Kênh Không Tồn Tại',
+          description: `❌ Không tìm thấy kênh văn bản chứa tin nhắn ID \`${msgInfo.messageId}\`. Vui lòng kiểm tra lại quyền truy cập!`,
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      let fetchedMsg = null;
+      try {
+        fetchedMsg = await targetChannel.messages.fetch(msgInfo.messageId);
+      } catch {
+        fetchedMsg = null;
+      }
+
+      if (!fetchedMsg) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Không Tìm Thấy Tin Nhắn',
+          description: `❌ Không thể tìm thấy tin nhắn với ID \`${msgInfo.messageId}\` trong kênh <#${msgInfo.channelId}>. Vui lòng kiểm tra lại link hoặc ID!`,
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const addRes = guildSettingsService.addKnowledgeMessage(guild.id, msgInfo.channelId, msgInfo.messageId);
+
+      if (addRes.alreadyExists) {
+        const warnEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Tin Nhắn Đã Tồn Tại',
+          description: `Tin nhắn \`${msgInfo.messageId}\` tại kênh <#${msgInfo.channelId}> đã có trong danh sách tri thức của Server rồi.`,
+          success: false,
+        });
+        return await message.reply({ embeds: [warnEmbed] });
+      }
+
+      const snippet =
+        fetchedMsg.content && fetchedMsg.content.length > 250
+          ? fetchedMsg.content.slice(0, 247) + '...'
+          : fetchedMsg.content || '*(Tin nhắn chứa embed/tệp tin)*';
+
+      const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+        title: 'Thêm Tin Nhắn Tri Thức Thành Công',
+        description:
+          `Đã thêm tin nhắn vào **Nguồn tri thức máy chủ** cho AI:\n\n` +
+          `• 💬 **Kênh:** <#${msgInfo.channelId}>\n` +
+          `• 👤 **Tác giả:** ${fetchedMsg.author?.tag || fetchedMsg.author?.username || 'Admin'}\n` +
+          `• 📜 **Nội dung trích đoạn:**\n> *${snippet}*\n\n` +
+          `• 📚 **Tổng số tin nhắn tri thức:** \`${addRes.messages.length} tin nhắn\`\n\n` +
+          `> *AI sẽ tự động đọc nội dung tin nhắn này khi trả lời câu hỏi.*`,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 2b. Xóa tin nhắn dữ liệu: s!setup knowledge remove-message <link_or_id>
+    if (action === 'remove-message' || action === 'del-message' || action === 'rm-message') {
+      const msgArg = knowledgeArgs[1];
+      if (!msgArg) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Thiếu Tham Số',
+          description: '❌ Vui lòng nhập link tin nhắn hoặc ID tin nhắn cần xóa.\n\n**Cú pháp:** `s!setup knowledge remove-message <link_hoặc_id>`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const msgInfo = this.extractMessageInfo(msgArg, message.channelId);
+      const targetMsgId = msgInfo ? msgInfo.messageId : msgArg.trim();
+
+      const removeRes = guildSettingsService.removeKnowledgeMessage(guild.id, targetMsgId);
+
+      if (removeRes.notFound) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Không Tìm Thấy Tin Nhắn',
+          description: `❌ Tin nhắn \`${targetMsgId}\` không nằm trong danh sách tri thức của Server.`,
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+        title: 'Xóa Tin Nhắn Tri Thức Thành Công',
+        description:
+          `Đã xóa tin nhắn \`${targetMsgId}\` khỏi danh sách nguồn tri thức.\n\n` +
+          `• 📚 **Tin nhắn còn lại:** \`${removeRes.messages.length} tin nhắn\``,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 3. Thêm văn bản dữ liệu: s!setup knowledge text <nội dung> hoặc s!setup knowledge add-text <nội dung>
+    if (action === 'text' || action === 'add-text' || action === 'set-text') {
+      const text = knowledgeArgs.slice(1).join(' ').trim();
+
+      if (!text) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Thiếu Nội Dung Văn Bản',
+          description:
+            '❌ Vui lòng nhập nội dung thông tin / quy định server bạn muốn AI nắm bắt.\n\n' +
+            '**Cú pháp:** `s!setup knowledge text <nội dung>`',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const addTextRes = guildSettingsService.addKnowledgeText(guild.id, text);
+
+      const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+        title: 'Thêm Văn Bản Tri Thức Thành Công',
+        description:
+          `Đã lưu thêm đoạn văn bản tùy chỉnh cho Server:\n\n` +
+          `> *${text.length > 300 ? text.substring(0, 300) + '...' : text}*\n\n` +
+          `• 📝 **Tổng số đoạn văn bản:** \`${addTextRes.customTexts.length} đoạn\`\n\n` +
+          `> *AI Assistant sẽ ưu tiên dùng kiến thức này để giải đáp thắc mắc.*`,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 3b. Xóa văn bản dữ liệu: s!setup knowledge remove-text <số thứ tự>
+    if (action === 'remove-text' || action === 'del-text' || action === 'rm-text') {
+      const indexArg = knowledgeArgs[1];
+      if (!indexArg) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Thiếu Số Thứ Tự',
+          description: '❌ Vui lòng nhập số thứ tự của đoạn văn bản cần xóa.\n\n**Cú pháp:** `s!setup knowledge remove-text <số_thứ_tự>`\n*(Xem số thứ tự qua `s!setup knowledge status`)*',
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const removeTextRes = guildSettingsService.removeKnowledgeText(guild.id, indexArg);
+
+      if (removeTextRes.notFound) {
+        const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+          title: 'Không Tìm Thấy Văn Bản',
+          description: `❌ Không tìm thấy đoạn văn bản số \`#${indexArg}\`. Vui lòng dùng \`s!setup knowledge status\` để xem danh sách số thứ tự.`,
+          success: false,
+        });
+        return await message.reply({ embeds: [errEmbed] });
+      }
+
+      const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+        title: 'Xóa Văn Bản Tri Thức Thành Công',
+        description:
+          `Đã xóa đoạn văn bản số \`#${indexArg}\` khỏi danh sách tri thức.\n\n` +
+          `• 📝 **Số đoạn văn bản còn lại:** \`${removeTextRes.customTexts.length} đoạn\``,
+        success: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 4. Đặt lại mặc định: s!setup knowledge reset / s!setup knowledge clear
+    if (action === 'reset' || action === 'clear') {
+      guildSettingsService.resetKnowledgeConfig(guild.id);
+
+      const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+        title: 'Đặt Lại Dữ Liệu Server Cho AI',
+        description:
+          'Đã xóa toàn bộ cấu hình kênh kiến thức, tin nhắn chỉ định và văn bản tùy chỉnh. AI sẽ dùng thông tin kênh/vai trò mặc định của Server.',
+        success: true,
+        isDestructive: true,
+      });
+      return await message.reply({ embeds: [embed] });
+    }
+
+    // 5. Xem trạng thái: s!setup knowledge status / s!setup knowledge
+    const kConfig = guildSettingsService.getKnowledgeConfig(guild.id);
+    const channelIds = kConfig.channelIds || [];
+    const channelDisplay =
+      channelIds.length > 0
+        ? channelIds.map((id) => `<#${id}> (\`${id}\`)`).join('\n  • ')
+        : '*Chưa thiết lập*';
+
+    const messages = kConfig.messages || [];
+    let messageDisplay = '*Chưa thiết lập*';
+    if (messages.length > 0) {
+      messageDisplay = messages
+        .map(
+          (m, idx) =>
+            `[${idx + 1}] Tin nhắn \`${m.messageId}\` tại <#${m.channelId}> ([Mở link](https://discord.com/channels/${guild.id}/${m.channelId}/${m.messageId}))`
+        )
+        .join('\n  • ');
+    }
+
+    const customTexts = kConfig.customTexts || [];
+    let textDisplay = '*Chưa thiết lập*';
+    if (customTexts.length > 0) {
+      textDisplay = customTexts
+        .map((t, idx) => `**[#${idx + 1}]** ${t.length > 150 ? t.substring(0, 147) + '...' : t}`)
+        .join('\n\n');
+    }
+
+    const desc =
+      `Cấu hình nguồn kiến thức máy chủ cho AI Assistant tại **${guild.name}**:\n\n` +
+      `• 📜 **Kênh kiến thức (${channelIds.length} kênh):**\n  • ${channelDisplay}\n\n` +
+      `• 💬 **Tin nhắn chỉ định (${messages.length} tin nhắn):**\n  • ${messageDisplay}\n\n` +
+      `• 📝 **Văn bản tùy chỉnh (${customTexts.length} đoạn):**\n${textDisplay}\n\n` +
+      `**Các lệnh cấu hình:**\n` +
+      `• Thêm kênh: \`s!setup knowledge channel #channel\`\n` +
+      `• Xóa kênh: \`s!setup knowledge remove-channel #channel\`\n` +
+      `• Thêm tin nhắn: \`s!setup knowledge add-message <link_hoặc_id> [#kênh]\`\n` +
+      `• Xóa tin nhắn: \`s!setup knowledge remove-message <link_hoặc_id>\`\n` +
+      `• Thêm văn bản: \`s!setup knowledge text <nội dung>\`\n` +
+      `• Xóa văn bản: \`s!setup knowledge remove-text <số_thứ_tự>\`\n` +
+      `• Đặt lại mặc định: \`s!setup knowledge reset\``;
+
+    const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
+      title: `Dữ Liệu Server Cho AI • ${guild.name}`,
       description: desc,
       success: true,
     });

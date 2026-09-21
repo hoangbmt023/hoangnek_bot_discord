@@ -217,16 +217,25 @@ Quản trị viên có thể linh hoạt Bật hoặc Tắt từng tính năng c
 
 | Lệnh Slash | Tham số | Ví dụ thực tế | Mô tả |
 | :--- | :--- | :--- | :--- |
-| `/setup feature enable` | `feature` (moderation/welcome/leave/all) | `/setup feature enable feature:moderation` | Bật một tính năng của bot |
-| `/setup feature disable` | `feature` (moderation/welcome/leave/all) | `/setup feature disable feature:welcome` | Tắt một tính năng của bot |
-| `/setup feature status` | `feature` *(tùy chọn)* | `/setup feature status feature:moderation` | Xem trạng thái BẬT/TẮT của một tính năng hoặc toàn bộ |
+| `/setup feature enable` | `feature` (moderation/welcome/leave/ai/music/all) | `/setup feature enable feature:ai` | Bật một tính năng của bot |
+| `/setup feature disable` | `feature` (moderation/welcome/leave/ai/music/all) | `/setup feature disable feature:music` | Tắt một tính năng của bot |
+| `/setup feature status` | `feature` *(tùy chọn)* | `/setup feature status` | Xem trạng thái BẬT/TẮT của một tính năng hoặc toàn bộ 5 tính năng |
 
 ### 💬 2. Sử dụng Cú pháp Chat Prefix nhanh:
+- `s!setup feature enable ai` (hoặc `!feature enable ai`)
+- `s!setup feature disable music` (hoặc `!feature disable music`)
 - `s!setup feature enable moderation` (hoặc `!feature enable moderation`)
 - `s!setup feature disable leave` (hoặc `!feature disable leave`)
-- `s!setup feature status moderation` (hoặc `!feature status`)
+- `s!setup feature status` (hoặc `!feature status`)
 
-### 💾 3. Lưu trữ cài đặt:
+### 📋 3. Danh sách 5 tính năng quản lý độc lập:
+1. `moderation`: Lọc ngôn từ độc hại & Hate Speech.
+2. `welcome`: Thông báo chào mừng thành viên mới vào server.
+3. `leave`: Thông báo tạm biệt khi thành viên rời server.
+4. `ai`: Trợ lý AI Assistant (`!ask`, `/ask`).
+5. `music`: Hệ thống Phát nhạc (`s!play`, `/music`).
+
+### 💾 4. Lưu trữ cài đặt:
 Trạng thái bật/tắt tính năng được lưu bền vững theo từng Server tại `data/guild_settings.json`. Mặc định tất cả tính năng đều được **BẬT** khi bot mới vào server.
 
 ---

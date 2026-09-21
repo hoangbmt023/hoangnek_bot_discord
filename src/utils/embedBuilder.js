@@ -201,9 +201,59 @@ class EmbedBuilderUtility {
   }
 
   /**
+   * Tạo Embed thông báo kết quả cài đặt Model AI
+   * @param {object} params
+   * @param {string} params.title
+   * @param {string} params.description
+   * @param {boolean} [params.success=true]
+   * @param {boolean} [params.isDestructive=false]
+   * @returns {EmbedBuilder}
+   */
+  static createAISetupResponseEmbed({ title, description, success = true, isDestructive = false }) {
+    const color = !success ? 0xed4245 : isDestructive ? 0xf59e0b : 0x5865f2;
+
+    return new EmbedBuilder()
+      .setColor(color)
+      .setAuthor({
+        name: 'HỆ THỐNG CẤU HÌNH • AI ASSISTANT',
+      })
+      .setTitle(title)
+      .setDescription(description)
+      .setFooter({
+        text: 'Hoangnek Bot • Cấu Hình Model AI',
+      })
+      .setTimestamp();
+  }
+
+  /**
+   * Tạo Embed thông báo kết quả cấu hình dữ liệu Server cho AI (Knowledge)
+   * @param {object} params
+   * @param {string} params.title
+   * @param {string} params.description
+   * @param {boolean} [params.success=true]
+   * @param {boolean} [params.isDestructive=false]
+   * @returns {EmbedBuilder}
+   */
+  static createKnowledgeSetupResponseEmbed({ title, description, success = true, isDestructive = false }) {
+    const color = !success ? 0xed4245 : isDestructive ? 0xf59e0b : 0x5865f2;
+
+    return new EmbedBuilder()
+      .setColor(color)
+      .setAuthor({
+        name: 'HỆ THỐNG CẤU HÌNH • DỮ LIỆU SERVER (KNOWLEDGE)',
+      })
+      .setTitle(title)
+      .setDescription(description)
+      .setFooter({
+        text: 'Hoangnek Bot • Cấu Hình Dữ Liệu AI',
+      })
+      .setTimestamp();
+  }
+
+  /**
    * Tạo Embed hướng dẫn sử dụng (Help) theo từng tính năng hoặc tổng thể
    * @param {object} params
-   * @param {string} [params.feature='all'] - 'all' | 'whitelist' | 'feature' | 'moderation' | 'notifications'
+   * @param {string} [params.feature='all'] - 'all' | 'whitelist' | 'feature' | 'moderation' | 'notifications' | 'ai' | 'setup' | 'knowledge'
    * @returns {EmbedBuilder}
    */
   static createHelpEmbed({ feature = 'all' } = {}) {
@@ -299,11 +349,11 @@ class EmbedBuilderUtility {
         `• \`s!clear\`: Dọn sạch danh sách chờ\n` +
         `• \`s!leave\` / \`s!dc\`: Ngắt kết nối và rời khỏi kênh thoại\n\n` +
         `*Lưu ý: Kênh văn bản cần được cấp phép bằng lệnh \`/setup channel add channel:#kênh\` trước khi dùng.*`;
-    } else if (norm === 'setup' || norm === 'channel') {
+    } else if (norm === 'setup' || norm === 'channel' || norm === 'knowledge') {
       title = 'HƯỚNG DẪN • TRUNG TÂM CẤU HÌNH (/setup)';
       desc =
         `## Trung Tâm Quản Trị Hệ Thống (/setup & s!setup)\n` +
-        `> Cấu trúc trực quan chia làm 4 nhóm: \`channel\`, \`notify\`, \`whitelist\`, \`feature\`.\n\n` +
+        `> Cấu trúc trực quan chia làm các nhóm: \`channel\`, \`notify\`, \`whitelist\`, \`feature\`, \`ai\`, \`knowledge\`.\n\n` +
         `**1. Cấu hình Kênh Lệnh & Nhạc (channel):**\n` +
         `• \`/setup channel add channel:#music-chat\`\n` +
         `• \`s!setup channel add #music-chat\`\n` +
@@ -317,25 +367,52 @@ class EmbedBuilderUtility {
         `• \`s!setup feature disable moderation\`\n` +
         `• \`s!setup feature status moderation\`\n\n` +
         `**4. Cấu hình Whitelist (whitelist):**\n` +
-        `• \`/setup whitelist add feature:moderation users:@user1\`\n` +
-        `• \`s!setup whitelist add moderation @user1\`\n\n` +
+        `• \`/setup whitelist add target:users value:@user1\`\n` +
+        `• \`s!setup whitelist add user @user1\`\n\n` +
+        `**5. Cấu hình Model AI (ai):**\n` +
+        `• \`/setup ai set-model provider:gemini model:gemini-3.6-flash\`\n` +
+        `• \`/setup ai set-primary provider:openrouter\`\n` +
+        `• \`s!setup ai set gemini gemini-3.6-flash\` | \`s!setup ai status\`\n\n` +
+        `**6. Cấu hình Dữ Liệu Server Cho AI (knowledge):**\n` +
+        `• \`/setup knowledge add-channel channel:#noi-quy\` | \`s!setup knowledge channel #noi-quy\`\n` +
+        `• \`/setup knowledge remove-channel channel:#noi-quy\`\n` +
+        `• \`/setup knowledge set-text content:<nội dung văn bản>\` | \`s!setup knowledge text <văn bản>\`\n` +
+        `• \`/setup knowledge status\` | \`/setup knowledge reset\`\n\n` +
         `*Yêu cầu quyền: Quản trị viên (Administrator / Manage Server).*`;
+    } else if (norm === 'ai' || norm === 'ask' || norm === 'assistant') {
+      title = 'HƯỚNG DẪN • AI ASSISTANT (!ask & /ask)';
+      desc =
+        `## Trợ Lý AI Thông Minh\n` +
+        `> Trả lời kiến thức tổng quát và giải đáp mọi thắc mắc về Server Discord.\n\n` +
+        `**1. Lệnh hỏi đáp (Prefix & Slash Command):**\n` +
+        `• \`!ask <câu hỏi>\`\n` +
+        `• \`/ask question:<câu hỏi>\`\n\n` +
+        `**2. Một số câu hỏi mẫu:**\n` +
+        `• \`!ask JavaScript là gì?\` (Kiến thức lập trình/chung)\n` +
+        `• \`!ask Server có những kênh nào?\` (Thông tin kênh chat/thoại)\n` +
+        `• \`!ask Server có những role nào?\` (Thông tin vai trò)\n` +
+        `• \`!ask Nội quy server là gì?\` (Nội quy và quy định server)\n` +
+        `• \`!ask Làm sao để nghe nhạc?\` (Hướng dẫn dùng bot)\n\n` +
+        `*Lưu ý: Giới hạn tần suất 1 câu hỏi / 5 giây đối với mỗi người dùng.*`;
     } else {
       // 'all' / Tổng quan
       title = 'TỔNG QUAN HƯỚNG DẪN SỬ DỤNG BOT';
       desc =
         `## Danh Sách Lệnh & Tính Năng\n` +
         `> Sử dụng \`/help <chức_năng>\` để xem chi tiết từng mục, hoặc \`s!help\` để xem nhanh lệnh nhạc.\n\n` +
-        `**1. 🎵 Phát Nhạc (Music - Lệnh \`s!\` & \`/music\`):**\n` +
+        `**1. 🤖 AI Assistant (Lệnh \`!ask\` & \`/ask\`):**\n` +
+        `• Hỏi đáp kiến thức chung, thông tin kênh/role/nội quy server và hướng dẫn bot.\n` +
+        `  *Xem chi tiết: \`/help feature:ai\`*\n\n` +
+        `**2. 🎵 Phát Nhạc (Music - Lệnh \`s!\` & \`/music\`):**\n` +
         `• \`s!play\`, \`s!pause\`, \`s!skip\`, \`s!queue\`, \`s!np\`, \`s!vol\`, \`s!loop\`, \`s!leave\`\n` +
         `  *Xem chi tiết: \`s!help\` hoặc \`/help feature:music\`*\n\n` +
-        `**2. 🌟 Thông Báo Vào/Ra (Welcome & Leave):**\n` +
+        `**3. 🌟 Thông Báo Vào/Ra (Welcome & Leave):**\n` +
         `• Tự động gửi vào Kênh hệ thống hoặc kênh tùy chỉnh bằng \`/setup notify set\` / \`s!setup notify\`\n` +
         `  *Xem chi tiết: \`/help feature:notifications\`*\n\n` +
-        `**3. ⚙️ Trung Tâm Cấu Hình (/setup & s!setup):**\n` +
+        `**4. ⚙️ Trung Tâm Cấu Hình (/setup & s!setup):**\n` +
         `• Quản lý phân quyền kênh lệnh, kênh thông báo, bật/tắt tính năng, và danh sách Whitelist.\n` +
         `  *Xem chi tiết: \`/help feature:setup\`*\n\n` +
-        `**4. 🛡️ Kiểm Duyệt Tự Động (Moderation):**\n` +
+        `**5. 🛡️ Kiểm Duyệt Tự Động (Moderation):**\n` +
         `• Tự động quét và xử lý ngôn từ xúc phạm / thù ghét thời gian thực.\n` +
         `  *Xem chi tiết: \`/help feature:moderation\`*`;
     }
@@ -677,9 +754,9 @@ class EmbedBuilderUtility {
         .setDisabled(disabled)
     );
 
-    // Hàng 2: [🔉 Giảm âm] [🔊 Tăng âm] [🔂 Lặp lại]
+    // Hàng 2: [🔉 Giảm âm] [🔊 Tăng âm] [🔂/🔁 Lặp lại]
     const loopLabel = loopMode === 'track' ? 'Lặp: Bài' : loopMode === 'queue' ? 'Lặp: Hàng đợi' : 'Lặp: Tắt';
-    const loopEmoji = '🔂';
+    const loopEmoji = loopMode === 'track' ? '🔂' : '🔁';
     const loopStyle = loopMode === 'track' ? ButtonStyle.Success : loopMode === 'queue' ? ButtonStyle.Primary : ButtonStyle.Secondary;
 
     const row2 = new ActionRowBuilder().addComponents(
@@ -797,6 +874,93 @@ class EmbedBuilderUtility {
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(disabled || isLast)
     );
+  }
+
+  /**
+   * Tạo Embed giao diện trạng thái Đang suy nghĩ cho AI Assistant
+   * @param {object} params
+   * @param {string} params.question - Câu hỏi của người dùng
+   * @param {import('discord.js').User} [params.user] - Người đặt câu hỏi
+   * @param {import('discord.js').Guild} [params.guild] - Server Discord
+   * @returns {EmbedBuilder}
+   */
+  static createAIThinkingEmbed({ question, user, guild } = {}) {
+    const userAvatar = user?.displayAvatarURL({ dynamic: true, size: 128 });
+    const shortQuestion = question && question.length > 250 ? question.slice(0, 247) + '...' : question || 'Đang đặt câu hỏi...';
+
+    return new EmbedBuilder()
+      .setColor(0x5865f2)
+      .setAuthor({
+        name: 'TRỢ LÝ AI • ĐANG SUY NGHĨ...',
+        iconURL: userAvatar || undefined,
+      })
+      .setTitle('✦ ĐANG XỬ LÝ CÂU HỎI')
+      .setDescription(
+        `### 💬 Câu hỏi:\n> *${shortQuestion}*\n\n` +
+        `⏳ *AI đang phân tích câu hỏi, tổng hợp dữ liệu máy chủ và chuẩn bị câu trả lời... Vui lòng đợi trong giây lát.*`
+      )
+      .setFooter({
+        text: `Yêu cầu bởi ${user?.tag || 'Thành viên'} • Hoangnek AI Assistant`,
+      })
+      .setTimestamp();
+  }
+
+  /**
+   * Tạo Embed khung chat trả lời câu hỏi cho AI Assistant (Khung xanh Blurple chuẩn Discord tối giản)
+   * @param {object} params
+   * @param {string} params.answer - Câu trả lời từ AI
+   * @param {string} [params.model='none'] - Tên Model AI
+   * @param {number} [params.responseTime=0] - Thời gian phản hồi (ms)
+   * @param {import('discord.js').User|object} [params.user] - Người đặt câu hỏi
+   * @returns {EmbedBuilder}
+   */
+  static createAIAnswerEmbed({ answer, model = 'none', responseTime = 0, user } = {}) {
+    const latencySec = responseTime ? (responseTime / 1000).toFixed(2) : '0.00';
+    const userName = user?.username || user?.tag || (typeof user === 'string' ? user : 'Người dùng');
+    const modelName = model || 'none';
+
+    // Discord Embed Description giới hạn 4096 ký tự
+    const maxLen = 4000;
+    const isTruncated = answer && answer.length > maxLen;
+    const displayAnswer = isTruncated
+      ? answer.slice(0, maxLen) + '\n\n*(Nội dung còn tiếp bên dưới...)*'
+      : answer || 'Không có câu trả lời.';
+
+    // Tự động chuyển màu khung sang Đỏ (0xED4245) nếu phản hồi là lỗi / gián đoạn / model: none
+    const isError =
+      modelName === 'none' ||
+      (typeof answer === 'string' && (answer.startsWith('❌') || answer.startsWith('⚠️') || answer.includes('gián đoạn')));
+    const embedColor = isError ? 0xed4245 : 0x5865f2;
+
+    return new EmbedBuilder()
+      .setColor(embedColor)
+      .setDescription(displayAnswer)
+      .setFooter({
+        text: `Model: ${modelName} • Phản hồi: ${latencySec}s • Hỏi bởi ${userName}`,
+      })
+      .setTimestamp();
+  }
+
+  /**
+   * Tạo Embed thông báo lỗi xử lý câu hỏi AI (Khung đỏ cảnh báo)
+   * @param {object} params
+   * @param {string} [params.errorMessage]
+   * @param {import('discord.js').User|object} [params.user]
+   * @returns {EmbedBuilder}
+   */
+  static createAIErrorEmbed({ errorMessage, user } = {}) {
+    const userName = user?.username || user?.tag || (typeof user === 'string' ? user : 'Người dùng');
+
+    return new EmbedBuilder()
+      .setColor(0xed4245) // Đỏ cảnh báo lỗi
+      .setDescription(
+        `❌ **Hiện tại dịch vụ AI đang tạm thời gián đoạn. Vui lòng thử lại sau giây lát!**` +
+        (errorMessage ? `\n\n> *${errorMessage}*` : '')
+      )
+      .setFooter({
+        text: `Model: none • Phản hồi: 0.00s • Hỏi bởi ${userName}`,
+      })
+      .setTimestamp();
   }
 }
 

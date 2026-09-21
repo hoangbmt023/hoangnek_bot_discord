@@ -6,11 +6,13 @@ const featureCommandHandler = require('../../services/featureCommandHandler');
 const helpCommandHandler = require('../../services/helpCommandHandler');
 const setupCommandHandler = require('../../services/setupCommandHandler');
 const musicCommandHandler = require('../../services/musicCommandHandler');
+const askCommandHandler = require('../../services/askCommandHandler');
 
 /**
  * MessageCreateEvent
  * Lắng nghe mọi tin nhắn mới trong Guild:
  * - Điều phối câu lệnh trợ giúp / hướng dẫn (!help / /help / s!help)
+ * - Điều phối câu lệnh AI Assistant (!ask / s!ask / !hoi)
  * - Điều phối câu lệnh cấu hình kênh (/setup / s!setup)
  * - Điều phối câu lệnh phát nhạc (s!play, s!skip, s!queue...)
  * - Điều phối câu lệnh quản lý Whitelist (!whitelist / !wl)
@@ -35,31 +37,37 @@ class MessageCreateEvent extends BaseEvent {
       return;
     }
 
-    // 2. Kiểm tra xem có phải lệnh Cấu hình Kênh (s!setup / s!channel) không
+    // 2. Kiểm tra xem có phải lệnh AI Assistant (!ask / s!ask / !hoi) không
+    if (askCommandHandler.isAskCommand(message.content)) {
+      await askCommandHandler.handleCommand(message);
+      return;
+    }
+
+    // 3. Kiểm tra xem có phải lệnh Cấu hình Kênh (s!setup / s!channel) không
     if (setupCommandHandler.isSetupCommand(message.content)) {
       await setupCommandHandler.handlePrefixCommand(message);
       return;
     }
 
-    // 3. Kiểm tra xem có phải lệnh Phát Nhạc (s!play, s!pause, s!skip...) không
+    // 4. Kiểm tra xem có phải lệnh Phát Nhạc (s!play, s!pause, s!skip...) không
     if (musicCommandHandler.isMusicCommand(message.content)) {
       await musicCommandHandler.handleCommand(message);
       return;
     }
 
-    // 4. Kiểm tra xem có phải lệnh quản lý Whitelist (!whitelist / !wl) không
+    // 5. Kiểm tra xem có phải lệnh quản lý Whitelist (!whitelist / !wl) không
     if (whitelistCommandHandler.isWhitelistCommand(message.content)) {
       await whitelistCommandHandler.handleCommand(message);
       return;
     }
 
-    // 5. Kiểm tra xem có phải lệnh Bật/Tắt tính năng (!feature / !toggle) không
+    // 6. Kiểm tra xem có phải lệnh Bật/Tắt tính năng (!feature / !toggle) không
     if (featureCommandHandler.isFeatureCommand(message.content)) {
       await featureCommandHandler.handleCommand(message);
       return;
     }
 
-    // 6. Chuyển tin nhắn thông thường qua dịch vụ kiểm duyệt
+    // 7. Chuyển tin nhắn thông thường qua dịch vụ kiểm duyệt
     await moderationService.handleMessage(message);
   }
 }

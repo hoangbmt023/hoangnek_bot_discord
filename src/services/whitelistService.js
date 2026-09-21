@@ -28,7 +28,8 @@ class WhitelistService {
   constructor() {
     // Map<guildId, Map<feature, { users: Set<string>, roles: Set<string>, channels: Set<string> }>>
     this.whitelist = new Map();
-    this.storagePath = path.resolve(process.cwd(), 'data', 'whitelist.json');
+    this.storagePath = path.resolve(process.cwd(), 'data', 'guild_settings.json');
+    this.legacyStoragePath = path.resolve(process.cwd(), 'data', 'whitelist.json');
     this.loadFromDisk();
   }
 
@@ -98,9 +99,19 @@ class WhitelistService {
 
     // Tìm tất cả các chuỗi ID số của Discord (17-20 chữ số)
     const matches = input.match(/\d{17,20}/g);
-    if (!matches) return [];
+    return matches ? Array.from(new Set(matches)) : [];
+  }
 
-    return Array.from(new Set(matches));
+  /**
+   * Tạo cấu trúc dữ liệu trống cho 1 tính năng
+   * @returns {{ users: Set<string>, roles: Set<string>, channels: Set<string> }}
+   */
+  createEmptyFeatureStore() {
+    return {
+      users: new Set(),
+      roles: new Set(),
+      channels: new Set(),
+    };
   }
 
   /**
@@ -118,18 +129,6 @@ class WhitelistService {
   }
 
   /**
-   * Khởi tạo cấu trúc mục tính năng rỗng
-   * @returns {{ users: Set<string>, roles: Set<string>, channels: Set<string> }}
-   */
-  createEmptyFeatureStore() {
-    return {
-      users: new Set(),
-      roles: new Set(),
-      channels: new Set(),
-    };
-  }
-
-  /**
    * Đọc dữ liệu whitelist đã lưu từ file JSON (tự động gộp dữ liệu cũ vào kho kiểm duyệt duy nhất)
    */
   loadFromDisk() {
@@ -139,26 +138,63 @@ class WhitelistService {
         fs.mkdirSync(dataDir, { recursive: true });
       }
 
+      let hasLegacyData = false;
+
+      // 1. Đọc và migrate từ file whitelist.json cũ (nếu có)
+      if (fs.existsSync(this.legacyStoragePath)) {
+        try {
+          const rawLegacy = fs.readFileSync(this.legacyStoragePath, 'utf8');
+          const parsedLegacy = JSON.parse(rawLegacy);
+          for (const [guildId, guildData] of Object.entries(parsedLegacy)) {
+            const featureMap = new Map();
+            const unifiedStore = this.createEmptyFeatureStore();
+
+            if (Array.isArray(guildData)) {
+              guildData.forEach((id) => unifiedStore.users.add(id));
+            } else if (typeof guildData === 'object' && guildData !== null) {
+              for (const [, featData] of Object.entries(guildData)) {
+                if (Array.isArray(featData)) {
+                  featData.forEach((id) => unifiedStore.users.add(id));
+                } else if (typeof featData === 'object' && featData !== null) {
+                  if (Array.isArray(featData.users)) featData.users.forEach((id) => unifiedStore.users.add(id));
+                  if (Array.isArray(featData.roles)) featData.roles.forEach((id) => unifiedStore.roles.add(id));
+                  if (Array.isArray(featData.channels)) featData.channels.forEach((id) => unifiedStore.channels.add(id));
+                }
+              }
+            }
+
+            featureMap.set('toxic', unifiedStore);
+            this.whitelist.set(guildId, featureMap);
+          }
+          hasLegacyData = true;
+          // Xóa file legacy cũ sau khi nạp
+          fs.unlinkSync(this.legacyStoragePath);
+          logger.info('[Whitelist] Đã di chuyển dữ liệu từ whitelist.json sang guild_settings.json thành công.');
+        } catch (e) {
+          logger.warn(`[Whitelist] Không thể đọc whitelist.json cũ: ${e.message}`);
+        }
+      }
+
+      // 2. Đọc dữ liệu từ file guild_settings.json chính
       if (fs.existsSync(this.storagePath)) {
         const rawData = fs.readFileSync(this.storagePath, 'utf8');
         const parsed = JSON.parse(rawData);
 
         for (const [guildId, guildData] of Object.entries(parsed)) {
-          const featureMap = new Map();
-          const unifiedStore = this.createEmptyFeatureStore();
+          if (!guildData || typeof guildData !== 'object') continue;
+          const wlData = guildData.whitelist;
+          if (!wlData || typeof wlData !== 'object') continue;
 
-          if (Array.isArray(guildData)) {
-            // Định dạng cổ: Array các user ID
-            guildData.forEach((id) => unifiedStore.users.add(id));
-          } else if (typeof guildData === 'object' && guildData !== null) {
-            for (const [feat, featData] of Object.entries(guildData)) {
-              if (Array.isArray(featData)) {
-                featData.forEach((id) => unifiedStore.users.add(id));
-              } else if (typeof featData === 'object' && featData !== null) {
-                if (Array.isArray(featData.users)) featData.users.forEach((id) => unifiedStore.users.add(id));
-                if (Array.isArray(featData.roles)) featData.roles.forEach((id) => unifiedStore.roles.add(id));
-                if (Array.isArray(featData.channels)) featData.channels.forEach((id) => unifiedStore.channels.add(id));
-              }
+          const featureMap = this.whitelist.get(guildId) || new Map();
+          const unifiedStore = featureMap.get('toxic') || this.createEmptyFeatureStore();
+
+          for (const [, featData] of Object.entries(wlData)) {
+            if (Array.isArray(featData)) {
+              featData.forEach((id) => unifiedStore.users.add(id));
+            } else if (typeof featData === 'object' && featData !== null) {
+              if (Array.isArray(featData.users)) featData.users.forEach((id) => unifiedStore.users.add(id));
+              if (Array.isArray(featData.roles)) featData.roles.forEach((id) => unifiedStore.roles.add(id));
+              if (Array.isArray(featData.channels)) featData.channels.forEach((id) => unifiedStore.channels.add(id));
             }
           }
 
@@ -167,17 +203,30 @@ class WhitelistService {
         }
         logger.info(`[Whitelist] Đã tải danh sách Whitelist từ bộ nhớ lưu trữ.`);
       }
+
+      // Lưu lại vào guild_settings.json nếu vừa migrate từ file cũ
+      if (hasLegacyData) {
+        this.saveToDisk();
+      }
     } catch (error) {
-      logger.warn(`[Whitelist] Không thể nạp file whitelist.json: ${error.message}`);
+      logger.warn(`[Whitelist] Không thể nạp dữ liệu whitelist: ${error.message}`);
     }
   }
 
   /**
-   * Lưu dữ liệu whitelist vào file JSON
+   * Lưu dữ liệu whitelist vào file guild_settings.json
    */
   saveToDisk() {
     try {
-      const exportData = {};
+      let exportData = {};
+      if (fs.existsSync(this.storagePath)) {
+        try {
+          exportData = JSON.parse(fs.readFileSync(this.storagePath, 'utf8')) || {};
+        } catch {
+          exportData = {};
+        }
+      }
+
       for (const [guildId, featureMap] of this.whitelist.entries()) {
         const store = featureMap.get('toxic') || this.createEmptyFeatureStore();
         const u = Array.from(store.users);
@@ -185,13 +234,16 @@ class WhitelistService {
         const c = Array.from(store.channels);
 
         if (u.length > 0 || r.length > 0 || c.length > 0) {
-          exportData[guildId] = {
+          exportData[guildId] = exportData[guildId] || {};
+          exportData[guildId].whitelist = {
             toxic: {
               users: u,
               roles: r,
               channels: c,
             },
           };
+        } else if (exportData[guildId] && exportData[guildId].whitelist) {
+          delete exportData[guildId].whitelist;
         }
       }
 

@@ -128,8 +128,47 @@ flowchart TD
 ```
 
 ### Các thành phần chính:
-- `src/services/guildSettingsService.js`: Lưu trữ trạng thái bật/tắt tính năng và kênh thông báo (`welcomeChannelId`, `leaveChannelId`) cô lập theo từng Server trong `data/guild_settings.json`.
+- `src/services/guildSettingsService.js`: Lưu trữ trạng thái bật/tắt tính năng (moderation, welcome, leave, ai, music), kênh thông báo (`welcomeChannelId`, `leaveChannelId`), Whitelist, Allowed Channels, Model AI tùy chỉnh (`ai.geminiModel`, `ai.openrouterModel`) và Dynamic Knowledge (`knowledge.channelIds`, `knowledge.messages`, `knowledge.customTexts`) cô lập theo từng Server trong file dữ liệu thống nhất `data/guild_settings.json`.
 - `src/services/memberNotificationService.js`: Thực hiện thuật toán phân giải kênh 3 cấp (Kênh tùy chỉnh -> Kênh hệ thống mặc định -> Kênh văn bản có quyền).
 - `src/events/guild/guildCreate.js`: Bắt sự kiện Bot được mời vào Server mới, gửi thông điệp chào mừng và hướng dẫn thiết lập nhanh.
-- `src/commands/slashCommands.js`: Đăng ký Slash Command toàn cục (`Routes.applicationCommands`) cho mọi máy chủ và hỗ trợ nhóm lệnh `/setup notify`.
+- `src/commands/slashCommands.js`: Đăng ký Slash Command toàn cục (`Routes.applicationCommands`) cho mọi máy chủ và hỗ trợ nhóm lệnh `/setup notify`, `/setup ai`, `/setup knowledge`, `/ask`.
+
+---
+
+## 6. Kiến Trúc AI Assistant & Fallback Mechanism (Gemini $\rightarrow$ OpenRouter)
+
+```mermaid
+flowchart TD
+    UserMsg[Tin nhắn !ask hoặc /ask] --> LimitCheck{AIService: Rate Limit 5s?}
+    LimitCheck -->|Spam < 5s| CooldownMsg[Trả thông báo chờ Cooldown]
+    LimitCheck -->|Hợp lệ| Gather[Context Builder]
+    
+    Gather --> Ctx1[ServerContextService: Kênh, Role, Info]
+    Gather --> Ctx2[ServerKnowledgeService: Đọc Tin nhắn ghim, Đa tin nhắn chỉ định & Đa văn bản tùy chỉnh]
+    Gather --> Ctx3[MemoryService: Lịch sử ngắn hạn guildId:userId]
+    Gather --> Prompt[PromptService: System Prompt & Grounding Rules]
+    
+    Prompt --> GSS[GuildSettingsService: Lấy Model cấu hình theo Server]
+    GSS --> TryGemini[GeminiService: Google Gemini API]
+    
+    TryGemini -->|Thành công| ReturnResp[Trả phản hồi cho Discord]
+    TryGemini -->|429 Quota / Timeout / 5xx| TryOR[OpenRouterService: Fallback Provider]
+    
+    TryOR -->|Thành công| ReturnResp
+    TryOR -->|Lỗi cả hai| FriendlyErr[Trả thông báo lỗi thân thiện]
+    
+    ReturnResp --> SaveMem[Lưu tương tác vào MemoryService]
+    ReturnResp --> Splitter[AskCommandHandler: Cắt chuỗi <= 2000 ký tự]
+```
+
+### Thành phần chính của AI Module:
+- `src/services/ai/geminiService.js`: Gọi Google Gemini API trực tiếp qua `fetch` native của Node.js 18+, xử lý HTTP 429 và timeout 15s.
+- `src/services/ai/openrouterService.js`: Dịch vụ dự phòng khi Gemini bị quá tải quota.
+- `src/services/ai/serverContextService.js`: Thu thập cấu trúc server (kênh, role, bot commands) theo thời gian thực từ Discord.js.
+- `src/services/ai/serverKnowledgeService.js`: Quản lý và trích xuất dữ liệu động từ tin nhắn ghim (Pinned Messages & Embeds) của các kênh tri thức (`knowledge.channelIds`), danh sách tin nhắn chỉ định (`knowledge.messages`) và danh sách văn bản tùy chỉnh (`knowledge.customTexts`).
+- `src/services/ai/promptService.js`: Xây dựng System Prompt với nguyên tắc chống ảo giác và trả lời tiếng Việt súc tích.
+- `src/services/ai/memoryService.js`: Bộ nhớ ngữ cảnh ngắn hạn theo `guildId:userId`, tự động giải phóng bộ nhớ sau 15 phút.
+- `src/services/ai/aiService.js`: Bộ điều phối trung tâm (Rate limit, nạp model theo server từ `guildSettingsService`, fallback, logging metric).
+- `src/services/askCommandHandler.js`: Điều phối lệnh chat `!ask` và phân mảnh tin nhắn dài chuẩn Discord.
+
 
