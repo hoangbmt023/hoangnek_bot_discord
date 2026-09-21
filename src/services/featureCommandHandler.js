@@ -89,8 +89,10 @@ class FeatureCommandHandler {
           `• \`moderation\`: Lọc ngôn từ độc hại & Hate Speech\n` +
           `• \`welcome\`: Thông báo chào mừng thành viên\n` +
           `• \`leave\`: Thông báo tạm biệt thành viên\n` +
+          `• \`ai\`: Trợ lý AI Assistant (!ask & /ask)\n` +
+          `• \`music\`: Hệ thống Phát nhạc (s!play & /music)\n` +
           `• \`all\`: Tất cả tính năng\n\n` +
-          `**Ví dụ:** \`/toggle enable moderation\` hoặc \`/toggle disable welcome\``,
+          `**Ví dụ:** \`!feature enable moderation\` hoặc \`!feature disable ai\``,
         enabled: false,
       });
       await message.reply({ embeds: [helpEmbed] });
@@ -102,7 +104,7 @@ class FeatureCommandHandler {
     if (!result.success) {
       const errorEmbed = EmbedBuilderUtility.createFeatureToggleResponseEmbed({
         title: 'Tính Năng Không Hợp Lệ',
-        description: `Không tìm thấy tính năng \`${featureArg}\`. Các tính năng hỗ trợ: \`moderation\`, \`welcome\`, \`leave\`, \`all\`.`,
+        description: `Không tìm thấy tính năng \`${featureArg}\`. Các tính năng hỗ trợ: \`moderation\`, \`welcome\`, \`leave\`, \`ai\`, \`music\`, \`all\`.`,
         enabled: false,
       });
       await message.reply({ embeds: [errorEmbed] });
@@ -132,7 +134,7 @@ class FeatureCommandHandler {
     if (!result.success) {
       const errorEmbed = EmbedBuilderUtility.createFeatureToggleResponseEmbed({
         title: 'Tính Năng Không Hợp Lệ',
-        description: `Không tìm thấy tính năng \`${featureArg}\`. Các tính năng hỗ trợ: \`moderation\`, \`welcome\`, \`leave\`, \`all\`.`,
+        description: `Không tìm thấy tính năng \`${featureArg}\`. Các tính năng hỗ trợ: \`moderation\`, \`welcome\`, \`leave\`, \`ai\`, \`music\`, \`all\`.`,
         enabled: false,
       });
       await message.reply({ embeds: [errorEmbed] });
