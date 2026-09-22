@@ -6,7 +6,7 @@ const EmbedBuilderUtility = require('../utils/embedBuilder');
 
 /**
  * AskCommandHandler
- * Xử lý các câu lệnh hỏi đáp AI từ chat prefix (!ask, s!ask)
+ * Xử lý các câu lệnh hỏi đáp AI từ chat prefix (!ask)
  */
 class AskCommandHandler {
   /**
@@ -85,7 +85,7 @@ class AskCommandHandler {
         title: 'Tính Năng Đã Bị Tắt',
         description:
           '⚠️ Tính năng **Trợ lý AI Assistant** hiện đang bị tắt trong Server này bởi Quản trị viên.\n' +
-          'Quản trị viên có thể bật lại bằng `/setup feature enable feature:ai` hoặc `s!setup feature enable ai`.',
+          'Quản trị viên có thể bật lại bằng `/setup feature enable feature:ai` hoặc `!setup feature enable ai`.',
         enabled: false,
       });
       await message.reply({ embeds: [disabledEmbed] }).catch(() => {});

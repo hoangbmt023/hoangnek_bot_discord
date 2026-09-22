@@ -213,8 +213,8 @@ async function runTests() {
   if (!helpCommandHandler.isHelpCommand('/help feature')) throw new Error('❌ Không nhận diện được /help feature');
   if (helpCommandHandler.isHelpCommand('hello bot')) throw new Error('❌ Nhận diện sai câu chat thường thành lệnh help');
 
-  // Kiểm tra 5 scope của createHelpEmbed
-  const helpScopes = ['all', 'whitelist', 'feature', 'moderation', 'notifications'];
+  // Kiểm tra đầy đủ các scope của createHelpEmbed
+  const helpScopes = ['all', 'music', 'ai', 'knowledge', 'setup', 'whitelist', 'feature', 'moderation', 'notifications'];
   for (const scope of helpScopes) {
     const embed = EmbedBuilderUtility.createHelpEmbed({ feature: scope });
     if (!embed.data.title || !embed.data.description) {

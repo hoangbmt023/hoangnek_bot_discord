@@ -8,26 +8,26 @@ const logger = require('../utils/logger');
 
 /**
  * SetupCommandHandler
- * Xử lý lệnh cấu hình tổng hợp đa chức năng (/setup hoặc s!setup)
- * Cấu trúc: s!setup <chức năng> <hành động/cái gì của chức năng>
+ * Xử lý lệnh cấu hình tổng hợp đa chức năng (/setup hoặc !setup)
+ * Cấu trúc: !setup <chức năng> <hành động/cái gì của chức năng>
  * Hỗ trợ:
- * - s!setup channel <add|remove|list|clear> ...
- * - s!setup notify <welcome|leave|all> <#channel> / s!setup notify reset / s!setup notify status
- * - s!setup welcome <#channel|reset> / s!setup leave <#channel|reset>
- * - s!setup feature <enable|disable|status> ...
- * - s!setup whitelist <add|remove|list|clear> ...
- * - s!setup <add|remove|list|clear> ... (viết tắt cấu hình kênh lệnh)
+ * - !setup channel <add|remove|list|clear> ...
+ * - !setup notify <welcome|leave|all> <#channel> / !setup notify reset / !setup notify status
+ * - !setup welcome <#channel|reset> / !setup leave <#channel|reset>
+ * - !setup feature <enable|disable|status> ...
+ * - !setup whitelist <add|remove|list|clear> ...
+ * - !setup <add|remove|list|clear> ... (viết tắt cấu hình kênh lệnh)
  */
 class SetupCommandHandler {
   /**
-   * Kiểm tra tin nhắn có phải lệnh prefix s!setup không
+   * Kiểm tra tin nhắn có phải lệnh prefix !setup không
    * @param {string} content
    * @returns {boolean}
    */
   isSetupCommand(content) {
     if (!content || typeof content !== 'string') return false;
     const trimmed = content.trim().toLowerCase();
-    return trimmed.startsWith('s!setup') || trimmed.startsWith('s!channel');
+    return trimmed.startsWith('!setup');
   }
 
   /**
@@ -42,7 +42,7 @@ class SetupCommandHandler {
   }
 
   /**
-   * Xử lý lệnh dạng Prefix (s!setup)
+   * Xử lý lệnh dạng Prefix (!setup)
    * @param {import('discord.js').Message} message
    */
   async handlePrefixCommand(message) {
@@ -71,7 +71,7 @@ class SetupCommandHandler {
 
     const firstArg = (args[0] || '').toLowerCase();
 
-    // 1. CẤU HÌNH THÔNG BÁO VÀO/RA (s!setup notify / s!setup welcome / s!setup leave)
+    // 1. CẤU HÌNH THÔNG BÁO VÀO/RA (!setup notify / !setup welcome / !setup leave)
     if (firstArg === 'notify' || firstArg === 'notification' || firstArg === 'thongbao') {
       return await this.handleNotifyCommand(message, args.slice(1));
     }
@@ -82,7 +82,7 @@ class SetupCommandHandler {
       return await this.handleNotifyShortcut(message, 'leave', args.slice(1));
     }
 
-    // 2. CẤU HÌNH MODEL AI (s!setup ai / s!setup model / s!setup primary)
+    // 2. CẤU HÌNH MODEL AI (!setup ai / !setup model / !setup primary)
     if (firstArg === 'ai' || firstArg === 'model') {
       return await this.handleAICommand(message, args.slice(1));
     }
@@ -90,7 +90,7 @@ class SetupCommandHandler {
       return await this.handleAICommand(message, ['primary', ...args.slice(1)]);
     }
 
-    // 3. CẤU HÌNH DỮ LIỆU SERVER CHO AI (s!setup knowledge / s!setup doc / s!setup data)
+    // 3. CẤU HÌNH DỮ LIỆU SERVER CHO AI (!setup knowledge / !setup doc / !setup data)
     if (firstArg === 'knowledge' || firstArg === 'doc' || firstArg === 'data') {
       return await this.handleKnowledgeCommand(message, args.slice(1));
     }
@@ -103,21 +103,21 @@ class SetupCommandHandler {
     let action = 'list';
     let actionArgs = [];
 
-    // Trường hợp 1: s!setup <feature> <target> <action> ... (Ví dụ: s!setup music channel add #music)
+    // Trường hợp 1: !setup <feature> <target> <action> ... (Ví dụ: !setup music channel add #music)
     if (knownFeatures.includes(args[0]?.toLowerCase()) && knownTargets.includes(args[1]?.toLowerCase())) {
       feature = args[0].toLowerCase();
       target = args[1].toLowerCase();
       action = (args[2] || 'list').toLowerCase();
       actionArgs = args.slice(3);
     }
-    // Trường hợp 2: s!setup <target> <action> ... (Ví dụ: s!setup channel add #music, s!setup whitelist add @user)
+    // Trường hợp 2: !setup <target> <action> ... (Ví dụ: !setup channel add #music, !setup whitelist add @user)
     else if (knownTargets.includes(args[0]?.toLowerCase())) {
       target = args[0].toLowerCase();
       action = (args[1] || 'list').toLowerCase();
       actionArgs = args.slice(2);
       feature = target === 'channel' ? 'music' : 'all';
     }
-    // Trường hợp 3: s!setup <action> ... (Ví dụ: s!setup add #music, s!setup list)
+    // Trường hợp 3: !setup <action> ... (Ví dụ: !setup add #music, !setup list)
     else {
       target = 'channel';
       action = (args[0] || 'list').toLowerCase();
@@ -147,18 +147,18 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [errEmbed] });
     }
 
-    // 1. CẤU HÌNH TÍNH NĂNG (feature / state / toggle)
+    // 1. CẤU HÌNH TÍNH NĂNG (!setup feature)
     if (target === 'feature' || target === 'state' || target === 'toggle') {
       const featName = actionArgs[0] || feature;
-      const featureContent = `!feature ${action} ${featName}`.trim();
+      const featureContent = `!setup feature ${action} ${featName}`.trim();
       const fakeMsg = Object.assign(Object.create(message), { content: featureContent });
       return await featureCommandHandler.handleCommand(fakeMsg);
     }
 
-    // 2. CẤU HÌNH WHITELIST (whitelist / wl)
+    // 2. CẤU HÌNH WHITELIST (!setup whitelist)
     if (target === 'whitelist' || target === 'wl') {
       const wlFeat = feature === 'moderation' ? 'toxic' : feature;
-      const wlContent = `!wl ${action} ${wlFeat} ${actionArgs.join(' ')}`.trim();
+      const wlContent = `!setup whitelist ${action} ${wlFeat} ${actionArgs.join(' ')}`.trim();
       const fakeMsg = Object.assign(Object.create(message), { content: wlContent });
       return await whitelistCommandHandler.handleCommand(fakeMsg);
     }
@@ -172,7 +172,7 @@ class SetupCommandHandler {
         if (!channelId || !guild.channels.cache.has(channelId)) {
           const errEmbed = EmbedBuilderUtility.createChannelSetupResponseEmbed({
             title: 'Kênh Không Hợp Lệ',
-            description: 'Vui lòng tag kênh (ví dụ: `#music-chat`) hoặc cung cấp ID kênh hợp lệ trong Server.\n\n**Cú pháp:** `s!setup channel add #channel`',
+            description: 'Vui lòng tag kênh (ví dụ: `#music-chat`) hoặc cung cấp ID kênh hợp lệ trong Server.\n\n**Cú pháp:** `!setup channel add #channel`',
             success: false,
           });
           return await message.reply({ embeds: [errEmbed] });
@@ -195,7 +195,7 @@ class SetupCommandHandler {
         if (!channelId) {
           const errEmbed = EmbedBuilderUtility.createChannelSetupResponseEmbed({
             title: 'Kênh Không Hợp Lệ',
-            description: 'Vui lòng tag kênh cần xóa (ví dụ: `#music-chat`) hoặc nhập ID kênh.\n\n**Cú pháp:** `s!setup channel remove #channel`',
+            description: 'Vui lòng tag kênh cần xóa (ví dụ: `#music-chat`) hoặc nhập ID kênh.\n\n**Cú pháp:** `!setup channel remove #channel`',
             success: false,
           });
           return await message.reply({ embeds: [errEmbed] });
@@ -219,7 +219,7 @@ class SetupCommandHandler {
 
         let desc = '';
         if (channels.length === 0) {
-          desc = '⚠️ **Chưa có kênh nào được cấu hình!**\n> Mặc định bot sẽ từ chối lệnh ở tất cả các kênh cho đến khi bạn cấp phép bằng `s!setup channel add #channel`.';
+          desc = '⚠️ **Chưa có kênh nào được cấu hình!**\n> Mặc định bot sẽ từ chối lệnh ở tất cả các kênh cho đến khi bạn cấp phép bằng `!setup channel add #channel`.';
         } else {
           const listStr = channels.map((id) => `• <#${id}> (\`${id}\`)`).join('\n');
           desc = `**🎵 Kênh Được Cấp Phép Lệnh & Phát Nhạc:**\n${listStr}`;
@@ -255,7 +255,7 @@ class SetupCommandHandler {
   }
 
   /**
-   * Xử lý lệnh cấu hình kênh thông báo dạng đầy đủ: s!setup notify <action|type> ...
+   * Xử lý lệnh cấu hình kênh thông báo dạng đầy đủ: !setup notify <action|type> ...
    * @param {import('discord.js').Message} message
    * @param {string[]} notifyArgs
    */
@@ -290,7 +290,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // Set: s!setup notify set <type> <#channel> hoặc s!setup notify <type> <#channel>
+    // Set: !setup notify set <type> <#channel> hoặc !setup notify <type> <#channel>
     let type = 'welcome';
     let channelArg = '';
 
@@ -308,8 +308,8 @@ class SetupCommandHandler {
         title: 'Kênh Không Hợp Lệ',
         description:
           '❌ Vui lòng tag kênh (ví dụ: `#chao-mung`) hoặc cung cấp ID kênh hợp lệ trong Server.\n\n' +
-          '**Cú pháp:** `s!setup notify <welcome|leave|all> #channel`\n' +
-          '**Đặt lại mặc định:** `s!setup notify reset`',
+          '**Cú pháp:** `!setup notify <welcome|leave|all> #channel`\n' +
+          '**Đặt lại mặc định:** `!setup notify reset`',
         success: false,
       });
       return await message.reply({ embeds: [errEmbed] });
@@ -336,7 +336,7 @@ class SetupCommandHandler {
   }
 
   /**
-   * Xử lý lệnh viết tắt: s!setup welcome <#channel|reset> hoặc s!setup leave <#channel|reset>
+   * Xử lý lệnh viết tắt: !setup welcome <#channel|reset> hoặc !setup leave <#channel|reset>
    * @param {import('discord.js').Message} message
    * @param {'welcome' | 'leave'} type
    * @param {string[]} shortcutArgs
@@ -366,8 +366,8 @@ class SetupCommandHandler {
         title: 'Kênh Không Hợp Lệ',
         description:
           `❌ Vui lòng tag kênh (ví dụ: \`#${type}\`) hoặc cung cấp ID kênh hợp lệ trong Server.\n\n` +
-          `**Cú pháp:** \`s!setup ${type} #channel\`\n` +
-          `**Đặt lại mặc định:** \`s!setup ${type} reset\``,
+          `**Cú pháp:** \`!setup ${type} #channel\`\n` +
+          `**Đặt lại mặc định:** \`!setup ${type} reset\``,
         success: false,
       });
       return await message.reply({ embeds: [errEmbed] });
@@ -406,7 +406,7 @@ class SetupCommandHandler {
       `• **Kênh Chào mừng (Welcome):** ${welcomeCh}\n` +
       `• **Kênh Tạm biệt (Leave):** ${leaveCh}\n` +
       `• **Kênh hệ thống Server:** ${systemCh}\n\n` +
-      `*Sử dụng \`s!setup notify <welcome|leave|all> #channel\` để cấu hình hoặc \`s!setup notify reset\` để khôi phục mặc định.*`;
+      `*Sử dụng \`!setup notify <welcome|leave|all> #channel\` để cấu hình hoặc \`!setup notify reset\` để khôi phục mặc định.*`;
 
     const embed = EmbedBuilderUtility.createNotificationSetupResponseEmbed({
       title: `Cấu Hình Kênh Thông Báo • ${guild.name}`,
@@ -417,7 +417,7 @@ class SetupCommandHandler {
   }
 
   /**
-   * Xử lý lệnh cấu hình AI Model (s!setup ai set/primary/reset/status)
+   * Xử lý lệnh cấu hình AI Model (!setup ai set/primary/reset/status)
    * @param {import('discord.js').Message} message
    * @param {string[]} aiArgs
    */
@@ -425,7 +425,7 @@ class SetupCommandHandler {
     const { guild } = message;
     const action = (aiArgs[0] || 'status').toLowerCase();
 
-    // 1. Cài đặt Provider chính: s!setup ai set-primary <gemini|openrouter> hoặc s!setup ai primary <gemini|openrouter>
+    // 1. Cài đặt Provider chính: !setup ai set-primary <gemini|openrouter> hoặc !setup ai primary <gemini|openrouter>
     if (action === 'set-primary' || action === 'primary') {
       const provider = (aiArgs[1] || '').toLowerCase();
 
@@ -434,8 +434,8 @@ class SetupCommandHandler {
           title: 'Nhà Cung Cấp Không Hợp Lệ',
           description:
             '❌ Vui lòng chọn nhà cung cấp AI muốn làm chính: `gemini` (Google Gemini) hoặc `openrouter` (OpenRouter).\n\n' +
-            '**Cú pháp:** `s!setup ai primary <gemini|openrouter>`\n' +
-            '**Ví dụ:** `s!setup ai primary openrouter` hoặc `s!setup primary gemini`',
+            '**Cú pháp:** `!setup ai primary <gemini|openrouter>`\n' +
+            '**Ví dụ:** `!setup ai primary openrouter` hoặc `!setup primary gemini`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -457,7 +457,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 2. Cài đặt model: s!setup ai set <gemini|openrouter> <model_name>
+    // 2. Cài đặt model: !setup ai set <gemini|openrouter> <model_name>
     if (action === 'set' || action === 'set-model') {
       const provider = (aiArgs[1] || '').toLowerCase();
       const model = aiArgs.slice(2).join(' ').trim();
@@ -467,8 +467,8 @@ class SetupCommandHandler {
           title: 'Nhà Cung Cấp Không Hợp Lệ',
           description:
             '❌ Vui lòng chọn nhà cung cấp AI là `gemini` (Google Gemini) hoặc `openrouter` (OpenRouter).\n\n' +
-            '**Cú pháp:** `s!setup ai set <gemini|openrouter> <tên_model>`\n' +
-            '**Ví dụ:** `s!setup ai set gemini gemini-3.6-flash`',
+            '**Cú pháp:** `!setup ai set <gemini|openrouter> <tên_model>`\n' +
+            '**Ví dụ:** `!setup ai set gemini gemini-3.6-flash`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -480,7 +480,7 @@ class SetupCommandHandler {
           description:
             '❌ Vui lòng nhập tên model AI bạn muốn sử dụng.\n\n' +
             '**Ví dụ Gemini:** `gemini-3.6-flash`, `gemini-3.5-flash-lite`\n' +
-            '**Ví dụ OpenRouter:** `openrouter/free`, `google/gemma-4-31b-it:free`, `qwen/qwen3.8-27b:free`',
+            '**Ví dụ OpenRouter:** `openrouter/free`, `nex-agi/nex-n2.5-mini:free`, `liquid/lfm-2.5-2.6b:free`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -500,7 +500,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 3. Đặt lại model: s!setup ai reset [gemini|openrouter|primary|all]
+    // 3. Đặt lại model: !setup ai reset [gemini|openrouter|primary|all]
     if (action === 'reset' || action === 'clear' || action === 'reset-model') {
       const provider = (aiArgs[1] || 'all').toLowerCase();
       guildSettingsService.resetAIModel(guild.id, provider);
@@ -514,14 +514,14 @@ class SetupCommandHandler {
         title: 'Đặt Lại AI Model Về Mặc Định',
         description:
           `Đã khôi phục Model của **${provText}** về cấu hình mặc định của Bot.\n\n` +
-          `> *Sử dụng \`s!setup ai status\` để kiểm tra Model hiện tại.*`,
+          `> *Sử dụng \`!setup ai status\` để kiểm tra Model hiện tại.*`,
         success: true,
         isDestructive: true,
       });
       return await message.reply({ embeds: [embed] });
     }
 
-    // 4. Xem trạng thái: s!setup ai status / s!setup ai
+    // 4. Xem trạng thái: !setup ai status / !setup ai
     const aiSettings = guildSettingsService.getAISettings(guild.id);
 
     const primaryName = aiSettings.primaryProvider === 'openrouter' ? 'OpenRouter' : 'Google Gemini';
@@ -543,9 +543,9 @@ class SetupCommandHandler {
       `• 🔷 **Google Gemini:** ${geminiStatus}\n` +
       `• 🔶 **OpenRouter:** ${openrouterStatus}\n\n` +
       `**Các câu lệnh tùy chỉnh:**\n` +
-      `• Đổi provider chính: \`s!setup ai primary <gemini|openrouter>\` *(hoặc \`s!setup primary <gemini|openrouter>\`)*\n` +
-      `• Đổi model: \`s!setup ai set <gemini|openrouter> <tên_model>\`\n` +
-      `• Đặt lại mặc định: \`s!setup ai reset [gemini|openrouter|primary|all]\``;
+      `• Đổi provider chính: \`!setup ai primary <gemini|openrouter>\` *(hoặc \`!setup primary <gemini|openrouter>\`)*\n` +
+      `• Đổi model: \`!setup ai set <gemini|openrouter> <tên_model>\`\n` +
+      `• Đặt lại mặc định: \`!setup ai reset [gemini|openrouter|primary|all]\``;
 
     const embed = EmbedBuilderUtility.createAISetupResponseEmbed({
       title: `Cấu Hình AI Model • ${guild.name}`,
@@ -575,7 +575,7 @@ class SetupCommandHandler {
   }
 
   /**
-   * Xử lý lệnh cấu hình dữ liệu Server cho AI (s!setup knowledge channel/message/text/reset/status)
+   * Xử lý lệnh cấu hình dữ liệu Server cho AI (!setup knowledge channel/message/text/reset/status)
    * @param {import('discord.js').Message} message
    * @param {string[]} knowledgeArgs
    */
@@ -583,7 +583,7 @@ class SetupCommandHandler {
     const { guild } = message;
     const action = (knowledgeArgs[0] || 'status').toLowerCase();
 
-    // 1. Thêm kênh dữ liệu: s!setup knowledge channel <#channel> hoặc s!setup knowledge add-channel <#channel>
+    // 1. Thêm kênh dữ liệu: !setup knowledge channel <#channel> hoặc !setup knowledge add-channel <#channel>
     if (action === 'channel' || action === 'add-channel' || action === 'set-channel') {
       const channelArg = knowledgeArgs[1];
       const channelId = this.extractChannelId(channelArg);
@@ -593,7 +593,7 @@ class SetupCommandHandler {
           title: 'Kênh Không Hợp Lệ',
           description:
             '❌ Vui lòng tag kênh (ví dụ: `#noi-quy`) hoặc cung cấp ID kênh hợp lệ trong Server.\n\n' +
-            '**Cú pháp:** `s!setup knowledge channel #channel`',
+            '**Cú pháp:** `!setup knowledge channel #channel`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -622,7 +622,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 1b. Xóa kênh dữ liệu: s!setup knowledge remove-channel <#channel>
+    // 1b. Xóa kênh dữ liệu: !setup knowledge remove-channel <#channel>
     if (action === 'remove-channel' || action === 'remove') {
       const channelArg = knowledgeArgs[1];
       const channelId = this.extractChannelId(channelArg);
@@ -632,7 +632,7 @@ class SetupCommandHandler {
           title: 'Thiếu Kênh',
           description:
             '❌ Vui lòng tag kênh hoặc cung cấp ID kênh cần xóa.\n\n' +
-            '**Cú pháp:** `s!setup knowledge remove-channel #channel`',
+            '**Cú pháp:** `!setup knowledge remove-channel #channel`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -662,7 +662,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 2. Thêm tin nhắn dữ liệu cụ thể: s!setup knowledge message <link_or_id> [#channel] hoặc s!setup knowledge add-message <link_or_id> [#channel]
+    // 2. Thêm tin nhắn dữ liệu cụ thể: !setup knowledge message <link_or_id> [#channel]
     if (action === 'message' || action === 'add-message' || action === 'set-message' || action === 'msg') {
       const msgArg = knowledgeArgs[1];
       const channelArg = knowledgeArgs[2];
@@ -675,8 +675,8 @@ class SetupCommandHandler {
           description:
             '❌ Vui lòng cung cấp **Link tin nhắn Discord** hoặc **ID tin nhắn kèm kênh**.\n\n' +
             '**Cách lấy link tin nhắn:** Click chuột phải vào tin nhắn -> chọn *Copy Message Link* (Sao chép liên kết tin nhắn).\n\n' +
-            '**Cú pháp:** `s!setup knowledge message <link_tin_nhắn>`\n' +
-            '**Hoặc:** `s!setup knowledge message <message_id> #channel`',
+            '**Cú pháp:** `!setup knowledge message <link_tin_nhắn>`\n' +
+            '**Hoặc:** `!setup knowledge message <message_id> #channel`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -742,13 +742,13 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 2b. Xóa tin nhắn dữ liệu: s!setup knowledge remove-message <link_or_id>
+    // 2b. Xóa tin nhắn dữ liệu: !setup knowledge remove-message <link_or_id>
     if (action === 'remove-message' || action === 'del-message' || action === 'rm-message') {
       const msgArg = knowledgeArgs[1];
       if (!msgArg) {
         const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
           title: 'Thiếu Tham Số',
-          description: '❌ Vui lòng nhập link tin nhắn hoặc ID tin nhắn cần xóa.\n\n**Cú pháp:** `s!setup knowledge remove-message <link_hoặc_id>`',
+          description: '❌ Vui lòng nhập link tin nhắn hoặc ID tin nhắn cần xóa.\n\n**Cú pháp:** `!setup knowledge remove-message <link_hoặc_id>`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -778,7 +778,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 3. Thêm văn bản dữ liệu: s!setup knowledge text <nội dung> hoặc s!setup knowledge add-text <nội dung>
+    // 3. Thêm văn bản dữ liệu: !setup knowledge text <nội dung>
     if (action === 'text' || action === 'add-text' || action === 'set-text') {
       const text = knowledgeArgs.slice(1).join(' ').trim();
 
@@ -787,7 +787,7 @@ class SetupCommandHandler {
           title: 'Thiếu Nội Dung Văn Bản',
           description:
             '❌ Vui lòng nhập nội dung thông tin / quy định server bạn muốn AI nắm bắt.\n\n' +
-            '**Cú pháp:** `s!setup knowledge text <nội dung>`',
+            '**Cú pháp:** `!setup knowledge text <nội dung>`',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -807,13 +807,13 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 3b. Xóa văn bản dữ liệu: s!setup knowledge remove-text <số thứ tự>
+    // 3b. Xóa văn bản dữ liệu: !setup knowledge remove-text <số thứ tự>
     if (action === 'remove-text' || action === 'del-text' || action === 'rm-text') {
       const indexArg = knowledgeArgs[1];
       if (!indexArg) {
         const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
           title: 'Thiếu Số Thứ Tự',
-          description: '❌ Vui lòng nhập số thứ tự của đoạn văn bản cần xóa.\n\n**Cú pháp:** `s!setup knowledge remove-text <số_thứ_tự>`\n*(Xem số thứ tự qua `s!setup knowledge status`)*',
+          description: '❌ Vui lòng nhập số thứ tự của đoạn văn bản cần xóa.\n\n**Cú pháp:** `!setup knowledge remove-text <số_thứ_tự>`\n*(Xem số thứ tự qua `!setup knowledge status`)*',
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -824,7 +824,7 @@ class SetupCommandHandler {
       if (removeTextRes.notFound) {
         const errEmbed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
           title: 'Không Tìm Thấy Văn Bản',
-          description: `❌ Không tìm thấy đoạn văn bản số \`#${indexArg}\`. Vui lòng dùng \`s!setup knowledge status\` để xem danh sách số thứ tự.`,
+          description: `❌ Không tìm thấy đoạn văn bản số \`#${indexArg}\`. Vui lòng dùng \`!setup knowledge status\` để xem danh sách số thứ tự.`,
           success: false,
         });
         return await message.reply({ embeds: [errEmbed] });
@@ -840,7 +840,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 4. Đặt lại mặc định: s!setup knowledge reset / s!setup knowledge clear
+    // 4. Đặt lại mặc định: !setup knowledge reset / !setup knowledge clear
     if (action === 'reset' || action === 'clear') {
       guildSettingsService.resetKnowledgeConfig(guild.id);
 
@@ -854,7 +854,7 @@ class SetupCommandHandler {
       return await message.reply({ embeds: [embed] });
     }
 
-    // 5. Xem trạng thái: s!setup knowledge status / s!setup knowledge
+    // 5. Xem trạng thái: !setup knowledge status / !setup knowledge
     const kConfig = guildSettingsService.getKnowledgeConfig(guild.id);
     const channelIds = kConfig.channelIds || [];
     const channelDisplay =
@@ -887,13 +887,13 @@ class SetupCommandHandler {
       `• 💬 **Tin nhắn chỉ định (${messages.length} tin nhắn):**\n  • ${messageDisplay}\n\n` +
       `• 📝 **Văn bản tùy chỉnh (${customTexts.length} đoạn):**\n${textDisplay}\n\n` +
       `**Các lệnh cấu hình:**\n` +
-      `• Thêm kênh: \`s!setup knowledge channel #channel\`\n` +
-      `• Xóa kênh: \`s!setup knowledge remove-channel #channel\`\n` +
-      `• Thêm tin nhắn: \`s!setup knowledge add-message <link_hoặc_id> [#kênh]\`\n` +
-      `• Xóa tin nhắn: \`s!setup knowledge remove-message <link_hoặc_id>\`\n` +
-      `• Thêm văn bản: \`s!setup knowledge text <nội dung>\`\n` +
-      `• Xóa văn bản: \`s!setup knowledge remove-text <số_thứ_tự>\`\n` +
-      `• Đặt lại mặc định: \`s!setup knowledge reset\``;
+      `• Thêm kênh: \`!setup knowledge channel #channel\`\n` +
+      `• Xóa kênh: \`!setup knowledge remove-channel #channel\`\n` +
+      `• Thêm tin nhắn: \`!setup knowledge add-message <link_hoặc_id> [#kênh]\`\n` +
+      `• Xóa tin nhắn: \`!setup knowledge remove-message <link_hoặc_id>\`\n` +
+      `• Thêm văn bản: \`!setup knowledge text <nội dung>\`\n` +
+      `• Xóa văn bản: \`!setup knowledge remove-text <số_thứ_tự>\`\n` +
+      `• Đặt lại mặc định: \`!setup knowledge reset\``;
 
     const embed = EmbedBuilderUtility.createKnowledgeSetupResponseEmbed({
       title: `Dữ Liệu Server Cho AI • ${guild.name}`,

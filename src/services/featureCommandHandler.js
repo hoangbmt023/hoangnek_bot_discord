@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 
 /**
  * FeatureCommandHandler
- * Xử lý các câu lệnh bật/tắt tính năng từ tin nhắn chat (/feature, !feature, /toggle, !toggle)
+ * Xử lý các câu lệnh bật/tắt tính năng từ tin nhắn chat (!setup feature, /setup feature)
  */
 class FeatureCommandHandler {
   /**
@@ -16,10 +16,10 @@ class FeatureCommandHandler {
     if (!content || typeof content !== 'string') return false;
     const lower = content.trim().toLowerCase();
     return (
-      lower.startsWith('!feature') ||
-      lower.startsWith('!toggle') ||
-      lower.startsWith('/feature') ||
-      lower.startsWith('/toggle')
+      lower.startsWith('!setup feature') ||
+      lower.startsWith('/setup feature') ||
+      lower.startsWith('!setup toggle') ||
+      lower.startsWith('/setup toggle')
     );
   }
 
@@ -48,16 +48,23 @@ class FeatureCommandHandler {
     const rawContent = message.content.trim();
     try {
       logger.info(
-        `[TextCommand] ${message.author.tag} (${message.author.id}) đã gọi lệnh Feature: "${rawContent}" tại Server "${message.guild.name}"`
+        `[TextCommand] ${message.author.tag} (${message.author.id}) đã gọi lệnh Setup Feature: "${rawContent}" tại Server "${message.guild.name}"`
       );
 
-      const firstSpaceIdx = rawContent.indexOf(' ');
-      if (firstSpaceIdx === -1) {
+      let tokens = rawContent.split(/\s+/);
+      if (tokens[0] && (tokens[0].toLowerCase() === '!setup' || tokens[0].toLowerCase() === '/setup')) {
+        tokens = tokens.slice(1);
+      }
+      if (tokens[0] && ['feature', 'state', 'toggle'].includes(tokens[0].toLowerCase())) {
+        tokens = tokens.slice(1);
+      } else if (tokens.length > 0) {
+        tokens = tokens.slice(1);
+      }
+
+      if (tokens.length === 0) {
         return this.handleStatus(message, message.guild.id);
       }
 
-      const restOfCommand = rawContent.slice(firstSpaceIdx + 1).trim();
-      const tokens = restOfCommand.split(/\s+/);
       const action = tokens[0].toLowerCase();
       const featureArg = tokens[1] ? tokens[1].toLowerCase() : null;
 
@@ -72,7 +79,7 @@ class FeatureCommandHandler {
       } else if (action === 'toggle' || action === 'dao') {
         return this.handleToggle(message, guildId, featureArg);
       } else {
-        // Cú pháp gõ tắt: /toggle moderation (tự động toggle)
+        // Cú pháp gõ tắt: !setup feature moderation (tự động toggle)
         return this.handleToggle(message, guildId, action);
       }
     } catch (error) {
@@ -92,7 +99,7 @@ class FeatureCommandHandler {
           `• \`ai\`: Trợ lý AI Assistant (!ask & /ask)\n` +
           `• \`music\`: Hệ thống Phát nhạc (s!play & /music)\n` +
           `• \`all\`: Tất cả tính năng\n\n` +
-          `**Ví dụ:** \`!feature enable moderation\` hoặc \`!feature disable ai\``,
+          `**Ví dụ:** \`!setup feature enable moderation\` hoặc \`!setup feature disable ai\``,
         enabled: false,
       });
       await message.reply({ embeds: [helpEmbed] });
@@ -169,7 +176,7 @@ class FeatureCommandHandler {
         title: `Trạng Thái Tính Năng • ${meta.name}`,
         description:
           `${desc}\n\n` +
-          `*Sử dụng \`s!setup feature enable/disable ${normKey}\` để thay đổi.*`,
+          `*Sử dụng \`!setup feature enable/disable ${normKey}\` để thay đổi.*`,
         isStatusList: true,
       });
       return await message.reply({ embeds: [embed] });
@@ -215,7 +222,7 @@ class FeatureCommandHandler {
       title: filterTitle,
       description:
         `${desc}\n\n` +
-        `*Sử dụng \`s!setup feature enable <tính_năng>\` hoặc \`s!setup feature disable <tính_năng>\` để thay đổi.*`,
+        `*Sử dụng \`!setup feature enable <tính_năng>\` để thay đổi.*`,
       isStatusList: true,
     });
 

@@ -59,13 +59,29 @@ async function runTests() {
   const isRuleQueryNoTone = serverKnowledgeService.hasDirectKnowledge('cho minh hoi noi quy server');
   assert.strictEqual(isRuleQueryNoTone, true, 'Câu hỏi về nội quy KHÔNG DẤU phải được nhận diện là direct knowledge');
 
-  const dynamicSample = '=== DỮ LIỆU TRI THỨC TỪ KÊNH #rule ===\nQuy định server: Cấm toxic, bảo vệ tài khoản cá nhân';
+  const dynamicSample = '=== DỮ LIỆU TRI THỨC TỪ KÊNH #rule ===\nQuy định server: Cấm toxic, bảo vệ tài khoản cá nhân. Mọi người vui lòng giới thiệu bản thân tại đây.';
   const isDynamicMatch = serverKnowledgeService.hasDirectKnowledge('Làm sao để bảo vệ tài khoản', null, dynamicSample);
   assert.strictEqual(isDynamicMatch, true, 'Câu hỏi khớp nội dung ghim có dấu phải được nhận diện direct knowledge');
 
   const isDynamicMatchNoTone = serverKnowledgeService.hasDirectKnowledge('lam sao de bao ve tai khoan', null, dynamicSample);
   assert.strictEqual(isDynamicMatchNoTone, true, 'Câu hỏi khớp nội dung ghim KHÔNG DẤU phải được nhận diện direct knowledge');
-  console.log('✅ [Pass] Nhận diện tri thức Server động và từ khóa nội bộ (Cả có dấu & Không dấu) hoạt động chính xác.');
+
+  // Kiểm tra chống nhận diện sai (False Positive) cho câu hỏi bên ngoài dù chứa từ "người", "thiệu", "hãy", "đang", "al", "thi đấu"
+  const isFalseMatchSoopi = serverKnowledgeService.hasDirectKnowledge('soopi pubg pc hàn hãy giới thiệu về người này', null, dynamicSample);
+  assert.strictEqual(isFalseMatchSoopi, false, 'Câu hỏi tìm kiếm thông tin bên ngoài không được nhận diện nhầm là Server Knowledge');
+
+  const isFalseMatchHimas = serverKnowledgeService.hasDirectKnowledge('himas hiện tại đang thi đấu cho al mà', null, dynamicSample);
+  assert.strictEqual(isFalseMatchHimas, false, 'Câu hỏi về Himas/AL thi đấu không được nhận diện nhầm là Server Knowledge');
+
+  const isFalseMatchRealName = serverKnowledgeService.hasDirectKnowledge('tên thật himass pubg pc là gì', null, dynamicSample);
+  assert.strictEqual(isFalseMatchRealName, false, 'Câu hỏi hỏi về tên thật người nổi tiếng phải luôn kích hoạt Tavily Search');
+
+  const isFalseMatchGeneral = serverKnowledgeService.hasDirectKnowledge('kênh đào panama nằm ở đâu', null, dynamicSample);
+  assert.strictEqual(isFalseMatchGeneral, false, 'Câu hỏi tổng quát ngoài đời không được nhận diện nhầm là Server Knowledge');
+
+  const isServerSpecificSoopi = tavilySearchService.isServerSpecificQuery('soopi pubg pc hàn hãy giới thiệu về người này');
+  assert.strictEqual(isServerSpecificSoopi, false, 'TavilySearchService không được nhận nhầm câu hỏi bên ngoài thành Server Specific');
+  console.log('✅ [Pass] Nhận diện tri thức Server động và cơ chế lọc Stop words chống False-positive hoạt động chính xác.');
 
   // =========================================================================
   // TEST 3: ServerContextService (Thu thập dữ liệu Server từ Discord)
@@ -131,6 +147,19 @@ async function runTests() {
   assert(systemPrompt.includes('ANTI-CONFABULATION') || systemPrompt.includes('bịa đặt') || systemPrompt.includes('BỊA ĐẶT'));
   assert(systemPrompt.includes('Tiếng Việt'));
 
+  // Kiểm tra chuyển đổi bảng Markdown sang Discord list
+  const rawTableResponse =
+    'Dưới đây là các lệnh:\n' +
+    '| Lệnh | Mô tả |\n' +
+    '|------|-------|\n' +
+    '| `/setup whitelist add` | Thêm người dùng vào whitelist |\n' +
+    '| `/setup whitelist remove` | Xóa người dùng khỏi whitelist |\n';
+
+  const formattedResponse = promptService.formatResponseForDiscord(rawTableResponse);
+  assert(!formattedResponse.includes('|---|'), 'Phải xóa bỏ hàng kẻ phân cách |---|');
+  assert(formattedResponse.includes('• `/setup whitelist add`: Thêm người dùng vào whitelist'), 'Phải chuyển đổi thành bullet point đẹp mắt');
+  assert(formattedResponse.includes('• `/setup whitelist remove`: Xóa người dùng khỏi whitelist'));
+
   const userPrompt = promptService.buildUserPrompt({
     question: 'Server có những kênh nào?',
     serverContextText: contextText,
@@ -139,7 +168,7 @@ async function runTests() {
   assert(userPrompt.includes('CÂU HỎI CỦA NGƯỜI DÙNG:'));
   assert(userPrompt.includes('Server có những kênh nào?'));
   assert(userPrompt.includes('thao-luan-chung'));
-  console.log('✅ [Pass] System Prompt đảm bảo quy chuẩn chống ảo giác và chuẩn hóa tiếng Việt.');
+  console.log('✅ [Pass] System Prompt đảm bảo quy chuẩn chống ảo giác và tự động chuyển đổi bảng Markdown sang danh sách Discord đẹp mắt.');
 
   // =========================================================================
   // TEST 5: Rate Limiter (Chống spam API)
@@ -221,7 +250,7 @@ async function runTests() {
   console.log('✅ [Pass] Nhận diện duy nhất cú pháp !ask và thuật toán cắt tin nhắn hoạt động chuẩn xác.');
 
   // =========================================================================
-  // TEST 8: Cấu hình Model AI tùy chỉnh theo Server (/setup ai & s!setup ai)
+  // TEST 8: Cấu hình Model AI tùy chỉnh theo Server (/setup ai & !setup ai)
   // =========================================================================
   console.log('\n--- 8. Kiểm thử Cấu hình Model AI theo Server (GuildSettingsService) ---');
   const guildSettingsService = require('../src/services/guildSettingsService');
@@ -400,8 +429,15 @@ async function runTests() {
     'Kết quả có answer và score cao phải là Sufficient'
   );
 
+  // 7. Kiểm tra chuẩn hóa khóa Cache Tavily (15 phút, chống lệch dấu câu/khoảng trắng)
+  const key1 = tavilySearchService.getCacheKey('Soopi là ai?');
+  const key2 = tavilySearchService.getCacheKey('  soopi là ai !!! ');
+  const key3 = tavilySearchService.getCacheKey('soopi   là   ai');
+  assert.strictEqual(key1, key2, 'Các biến thể dấu câu phải ra cùng 1 cache key');
+  assert.strictEqual(key2, key3, 'Các biến thể khoảng trắng phải ra cùng 1 cache key');
+
   // =========================================================================
-  // TEST 11: Dynamic Server Knowledge Setup (/setup knowledge & s!setup knowledge)
+  // TEST 11: Dynamic Server Knowledge Setup (/setup knowledge & !setup knowledge)
   // =========================================================================
   console.log('\n--- 11. Kiểm thử Cấu hình Dữ liệu Server cho AI (Discord-based Knowledge Setup) ---');
   const testGuildK = 'guild_knowledge_test_888';
@@ -550,7 +586,11 @@ async function runTests() {
   assert.strictEqual(serverKnowledgeService.hasDirectKnowledge('Ai là Hoàng?', mockKnowledgeGuild), true);
   assert.strictEqual(serverKnowledgeService.hasDirectKnowledge('Làm sao để vào giveaway?', mockKnowledgeGuild), true);
 
-  // 8. Reset về mặc định
+  // 8. Kiểm tra In-Memory RAM Cache (0ms) và Invalidation
+  const cachedKnowledge = await serverKnowledgeService.getKnowledgeForGuild(mockKnowledgeGuild);
+  assert.strictEqual(cachedKnowledge, dynamicKnowledge, 'Lần gọi thứ 2 phải trả về ngay lập tức từ bộ nhớ RAM Cache');
+
+  // 9. Reset về mặc định & kiểm tra cache tự động bị xóa
   guildSettingsService.resetKnowledgeConfig(testGuildK);
   const resetConfig = guildSettingsService.getKnowledgeConfig(testGuildK);
   assert.deepStrictEqual(resetConfig.channelIds, []);
@@ -559,7 +599,11 @@ async function runTests() {
   assert.strictEqual(resetConfig.messageId, null);
   assert.strictEqual(resetConfig.messageChannelId, null);
   assert.strictEqual(resetConfig.customText, null);
-  console.log('✅ [Pass] Cấu hình Đa Kênh, Đa Tin Nhắn, Đa Văn Bản tùy chỉnh và trích xuất Discord Knowledge hoạt động chuẩn xác 100%.');
+
+  // Sau khi reset, cache đã bị invalidate
+  const postResetKnowledge = await serverKnowledgeService.getKnowledgeForGuild(mockKnowledgeGuild);
+  assert.strictEqual(postResetKnowledge, '', 'Sau khi reset cài đặt, cache phải tự động xóa và trả về rỗng');
+  console.log('✅ [Pass] Cấu hình Đa Kênh, Đa Tin Nhắn, Đa Văn Bản tùy chỉnh, trích xuất Discord Knowledge và In-Memory RAM Cache (0ms) hoạt động chuẩn xác 100%.');
 
 
   console.log('\n🎉 TẤT CẢ CÁC BÀI TEST AI ASSISTANT & MODEL SETUP ĐÃ HOÀN THÀNH XUẤT SẮC!');

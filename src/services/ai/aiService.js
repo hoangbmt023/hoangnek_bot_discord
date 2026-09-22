@@ -76,13 +76,15 @@ class AIService {
       };
     }
 
-    // 2. Thu thập Ngữ cảnh Server và Tri thức động (Discord Channel / Custom Text / Markdown)
-    let serverContextText = '';
-    if (guild) {
-      const contextData = serverContextService.collectGuildContext(guild);
-      serverContextText = serverContextService.formatContextForPrompt(contextData);
-    }
-    const knowledgeText = await serverKnowledgeService.getKnowledgeForGuild(guild);
+    // 2. Thu thập Ngữ cảnh Server và Tri thức động song song (Promise.all)
+    const [serverContextText, knowledgeText] = await Promise.all([
+      (async () => {
+        if (!guild) return '';
+        const contextData = serverContextService.collectGuildContext(guild);
+        return serverContextService.formatContextForPrompt(contextData);
+      })(),
+      serverKnowledgeService.getKnowledgeForGuild(guild),
+    ]);
 
     // 2.1. Phân luồng Tri thức Thông minh (Smart Knowledge & RAG Routing):
     // Luồng: Server Knowledge Base -> Có dữ liệu? -> Dùng Gemini/OpenRouter
@@ -208,7 +210,7 @@ class AIService {
       `[AI] provider=${usedProvider} model=${usedModel} guild=${guildId} user=${userId} (${userName}) responseTime=${responseTime}ms`
     );
 
-    const answerText = result.text;
+    const answerText = promptService.formatResponseForDiscord(result.text);
 
     // 7. Lưu lại lượt tương tác vào bộ nhớ ngắn hạn
     memoryService.addMessage(guildId, userId, 'user', question);

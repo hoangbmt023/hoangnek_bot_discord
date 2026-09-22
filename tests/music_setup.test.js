@@ -104,8 +104,9 @@ async function runTests() {
 
   // 4. Kiểm thử Command Handlers Prefix
   console.log('\n--- 4. Kiểm thử Command Handlers Prefix ---');
-  assert.strictEqual(setupCommandHandler.isSetupCommand('s!setup add #music'), true);
-  assert.strictEqual(setupCommandHandler.isSetupCommand('s!channel list'), true);
+  assert.strictEqual(setupCommandHandler.isSetupCommand('!setup add #music'), true);
+  assert.strictEqual(setupCommandHandler.isSetupCommand('!setup channel list'), true);
+  assert.strictEqual(setupCommandHandler.isSetupCommand('!channel list'), false);
   assert.strictEqual(setupCommandHandler.isSetupCommand('hello bot'), false);
   assert.strictEqual(setupCommandHandler.extractChannelId('<#123456789012345678>'), '123456789012345678');
   assert.strictEqual(setupCommandHandler.extractChannelId('123456789012345678'), '123456789012345678');
@@ -126,20 +127,22 @@ async function runTests() {
   assert.strictEqual(helpCommandHandler.isHelpCommand('!help'), true);
   console.log('✅ [Pass] Bộ nhận diện lệnh Prefix (s!) hoạt động hoàn hảo.');
 
-  // Kiểm tra cấu trúc Slash Command tinh gọn (/setup, /music, /help)
+  // Kiểm tra cấu trúc Slash Command (/setup, /music, /help, /ask)
   const { getSlashCommandsData } = require('../src/commands/slashCommands');
   const slashData = getSlashCommandsData();
-  assert.strictEqual(slashData.length, 3, 'Chỉ đăng ký đúng 3 Slash Commands: /setup, /music, /help');
+  assert.strictEqual(slashData.length, 4, 'Đăng ký 4 Slash Commands: /setup, /music, /help, /ask');
   const setupCmd = slashData.find((c) => c.name === 'setup');
   assert(setupCmd, 'Slash Command /setup phải tồn tại');
-  assert.strictEqual(setupCmd.options.length, 4, '/setup phải có 4 Subcommand Groups (channel, whitelist, feature, notify)');
+  assert.strictEqual(setupCmd.options.length, 6, '/setup phải có 6 Subcommands/Groups');
   
   const groupNames = setupCmd.options.map((o) => o.name);
   assert(groupNames.includes('channel'), 'Nhóm channel phải tồn tại trong /setup');
   assert(groupNames.includes('whitelist'), 'Nhóm whitelist phải tồn tại trong /setup');
   assert(groupNames.includes('feature'), 'Nhóm feature phải tồn tại trong /setup');
   assert(groupNames.includes('notify'), 'Nhóm notify phải tồn tại trong /setup');
-  console.log('✅ [Pass] Cấu trúc Slash Command /setup với 4 Subcommand Groups (channel, whitelist, feature, notify) chuẩn xác.');
+  assert(groupNames.includes('ai'), 'Nhóm ai phải tồn tại trong /setup');
+  assert(groupNames.includes('knowledge'), 'Nhóm knowledge phải tồn tại trong /setup');
+  console.log('✅ [Pass] Cấu trúc Slash Command /setup với 6 Subcommand Groups chuẩn xác.');
 
   // 5. Kiểm thử Embed UI (Searching & Queue Pagination)
   console.log('\n--- 5. Kiểm thử Embed UI (Searching & Queue Pagination) ---');

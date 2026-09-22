@@ -99,7 +99,7 @@ class InteractionCreateEvent extends BaseEvent {
       const embed = EmbedBuilderUtility.createWarningEmbed(
         'Tính Năng Đang Bị Tắt',
         '⚠️ Tính năng **Trợ lý AI (AI Assistant)** hiện đang bị tắt bởi Quản trị viên trên máy chủ này.\n\n' +
-        '> Quản trị viên có thể bật lại bằng lệnh `/setup feature enable feature:ai` hoặc `!feature enable ai`.'
+        '> Quản trị viên có thể bật lại bằng lệnh `/setup feature enable feature:ai` hoặc `!setup feature enable ai`.'
       );
       return await interaction.reply({ embeds: [embed], ephemeral: true });
     }
@@ -192,26 +192,26 @@ class InteractionCreateEvent extends BaseEvent {
 
       if (provider === 'gemini') {
         choices = [
-          { name: 'gemini-3.6-flash [Mặc định Google - Tối ưu nhất]', value: 'gemini-3.6-flash' },
-          { name: 'gemini-3.5-flash-lite [Google - Siêu nhanh 1s]', value: 'gemini-3.5-flash-lite' },
+          { name: 'gemini-3.6-flash [Google Gemini Flash - Mặc định & Tối ưu]', value: 'gemini-3.6-flash' },
+          { name: 'gemini-3.5-flash-lite [Google Gemini Lite - Tốc độ cao]', value: 'gemini-3.5-flash-lite' },
         ];
       } else if (provider === 'openrouter') {
         choices = [
-          { name: 'openrouter/free [Mặc định OpenRouter - Auto Free]', value: 'openrouter/free' },
-          { name: 'google/gemma-4-31b-it:free [Google Gemma 4 Free]', value: 'google/gemma-4-31b-it:free' },
-          { name: 'google/gemma-4-26b-a4b-it:free [Google Gemma 26B Free]', value: 'google/gemma-4-26b-a4b-it:free' },
-          { name: 'qwen/qwen3.8-27b:free [Qwen 3.8 27B Free]', value: 'qwen/qwen3.8-27b:free' },
-          { name: 'nvidia/nemotron-3-super-120b-a12b:free [NVIDIA Nemotron 120B Free]', value: 'nvidia/nemotron-3-super-120b-a12b:free' },
-          { name: 'z-ai/glm-5.2:free [GLM 5.2 Free]', value: 'z-ai/glm-5.2:free' },
+          { name: 'openrouter/free [OpenRouter Auto Router Free - Mặc định]', value: 'openrouter/free' },
+          { name: 'nex-agi/nex-n2.5-mini:free [Nex-AGI Mini 2.5 Free - Siêu nhanh ~0.5s]', value: 'nex-agi/nex-n2.5-mini:free' },
+          { name: 'nex-agi/nex-n2.5-pro:free [Nex-AGI Pro 2.5 Free - Chất lượng cao]', value: 'nex-agi/nex-n2.5-pro:free' },
+          { name: 'liquid/lfm-2.5-2.6b:free [Liquid LFM 2.5 Free - Nhanh ~1.3s]', value: 'liquid/lfm-2.5-2.6b:free' },
+          { name: 'inclusionai/ling-3.0-flash-vl:free [InclusionAI Flash 3.0 Free]', value: 'inclusionai/ling-3.0-flash-vl:free' },
+          { name: 'dots-studio/dots-3-note-preview:free [Dots Studio Preview Free]', value: 'dots-studio/dots-3-note-preview:free' },
         ];
       } else {
         // Chưa chọn provider hoặc đang gõ
         choices = [
           { name: 'gemini-3.6-flash [Gemini - Mặc định]', value: 'gemini-3.6-flash' },
           { name: 'gemini-3.5-flash-lite [Gemini - Siêu nhanh]', value: 'gemini-3.5-flash-lite' },
-          { name: 'openrouter/free [OpenRouter - Mặc định]', value: 'openrouter/free' },
-          { name: 'google/gemma-4-31b-it:free [OpenRouter Free]', value: 'google/gemma-4-31b-it:free' },
-          { name: 'qwen/qwen3.8-27b:free [OpenRouter Free]', value: 'qwen/qwen3.8-27b:free' },
+          { name: 'openrouter/free [OpenRouter - Mặc định Auto]', value: 'openrouter/free' },
+          { name: 'nex-agi/nex-n2.5-mini:free [OpenRouter - Siêu nhanh ~0.5s]', value: 'nex-agi/nex-n2.5-mini:free' },
+          { name: 'liquid/lfm-2.5-2.6b:free [OpenRouter - Nhanh ~1.3s]', value: 'liquid/lfm-2.5-2.6b:free' },
         ];
       }
 
@@ -1157,7 +1157,7 @@ class InteractionCreateEvent extends BaseEvent {
       const embed = EmbedBuilderUtility.createWarningEmbed(
         'Tính Năng Đang Bị Tắt',
         '⚠️ Tính năng **Phát nhạc (Music System)** hiện đang bị tắt bởi Quản trị viên trên máy chủ này.\n\n' +
-        '> Quản trị viên có thể bật lại bằng lệnh `/setup feature enable feature:music` hoặc `!feature enable music`.'
+        '> Quản trị viên có thể bật lại bằng lệnh `/setup feature enable feature:music` hoặc `!setup feature enable music`.'
       );
       return await interaction.reply({ embeds: [embed], ephemeral: true });
     }

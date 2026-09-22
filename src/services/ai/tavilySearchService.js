@@ -16,9 +16,16 @@ const logger = require('../../utils/logger');
 class TavilySearchService {
   constructor() {
     this.cache = new Map();
-    this.cacheTtlMs = 10 * 60 * 1000; // 10 phút
+    this.cacheTtlMs = 15 * 60 * 1000; // 15 phút
     this.client = null;
     this.initClient();
+  }
+
+  /**
+   * Xóa toàn bộ cache tìm kiếm (dùng cho testing hoặc reset thủ công)
+   */
+  clearCache() {
+    this.cache.clear();
   }
 
   /**
@@ -60,19 +67,19 @@ class TavilySearchService {
     const serverKeywords = [
       'server',
       'máy chủ',
-      'kênh',
-      'channel',
-      'role',
-      'vai trò',
-      'nội quy',
-      'quy tắc',
-      'luật',
-      'faq',
+      'nội quy server',
+      'quy tắc server',
+      'luật server',
+      'luật của server',
+      'kênh chat',
+      'kênh voice',
+      'kênh thông báo',
+      'kênh bot',
+      'role server',
+      'vai trò trong server',
       'whitelist',
       'lọc từ',
-      'toxic',
-      'chào mừng',
-      'tạm biệt',
+      'chào mừng thành viên',
       '/setup',
       '/music',
       '/help',
@@ -84,7 +91,7 @@ class TavilySearchService {
       return true;
     }
 
-    if (lower.includes('lệnh') && (lower.includes('bot') || lower.includes('phát nhạc') || lower.includes('play'))) {
+    if (lower.includes('lệnh') && (lower.includes('bot') || lower.includes('phát nhạc') || lower.includes('play') || lower.includes('setup') || lower.includes('music'))) {
       return true;
     }
 
@@ -92,12 +99,16 @@ class TavilySearchService {
   }
 
   /**
-   * Tạo khóa cache chuẩn hóa từ câu hỏi
+   * Tạo khóa cache chuẩn hóa từ câu hỏi (Loại bỏ dấu câu thừa, khoảng trắng trùng lặp để tối đa hóa cache hit)
    * @param {string} query
    * @returns {string}
    */
   getCacheKey(query) {
-    return (query || '').toLowerCase().trim();
+    return (query || '')
+      .toLowerCase()
+      .replace(/[?!.,;:()\[\]{}"'\\\/~`*+_\-\n\r\t]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   /**
