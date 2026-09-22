@@ -24,7 +24,7 @@ Tài liệu này hướng dẫn chi tiết cách tạo ứng dụng Bot trên Di
 4. Cuộn trang xuống phần **Privileged Gateway Intents**:
    - Bật **PRESENCE INTENT** (Tùy chọn)
    - Bật **SERVER MEMBERS INTENT** (**BẮT BUỘC** - Để nhận sự kiện thành viên vào/rời server và lấy Role).
-   - Bật **MESSAGE CONTENT INTENT** (**BẮT BUỘC** - Để bot đọc nội dung tin nhắn phục vụ lọc ngôn từ độc hại và nhận diện lệnh prefix `s!`, `!wl`, `!feature`).
+   - Bật **MESSAGE CONTENT INTENT** (**BẮT BUỘC** - Để bot đọc nội dung tin nhắn phục vụ lọc ngôn từ độc hại và nhận diện lệnh prefix `s!` (nhạc), `!setup`, `!ask`, `!help`).
 5. Nhấn **Save Changes** ở góc dưới.
 
 ---
@@ -59,11 +59,11 @@ Bot được thiết kế hoạt động độc lập trên **nhiều Server cù
   ```
   Hoặc bằng lệnh Prefix:
   ```
-  s!setup notify welcome #chao-mung
-  s!setup notify leave #tam-biet
-  s!setup welcome #chao-mung
-  s!setup notify reset   (Khôi phục về kênh hệ thống mặc định)
-  s!setup notify status  (Xem cấu hình kênh hiện tại của server)
+  !setup notify welcome #chao-mung
+  !setup notify leave #tam-biet
+  !setup welcome #chao-mung
+  !setup notify reset   (Khôi phục về kênh hệ thống mặc định)
+  !setup notify status  (Xem cấu hình kênh hiện tại của server)
   ```
 
 ---
@@ -71,6 +71,126 @@ Bot được thiết kế hoạt động độc lập trên **nhiều Server cù
 ### 4.2 Biến Môi Trường `GUILD_ID` (Tùy chọn khi phát triển)
 - `GUILD_ID` trong `.env` là **tùy chọn**, chỉ dùng khi lập trình viên muốn đồng bộ Slash Commands tức thì (trong 1 giây) lên 1 server test.
 - Khi triển khai thực tế (Production), bạn có thể **để trống `GUILD_ID=`**, Bot sẽ tự động đăng ký Slash Commands toàn cục (Global) cho tất cả Server!
+
+---
+
+### 4.3 Cấu Hình AI Assistant, Chọn Nhà Cung Cấp Chính & Tùy Chỉnh Model
+Bot hỗ trợ **AI Assistant thông minh** (`!ask <câu hỏi>` hoặc `/ask question:<câu hỏi>`), tự động hiểu thông tin server, nội quy, kênh chat, role và lệnh bot.
+
+#### 1. Cài đặt trong `.env.development` / `.env.production`:
+- `GEMINI_API_KEY`: Lấy API Key miễn phí tại [Google AI Studio](https://aistudio.google.com/).
+- `OPENROUTER_API_KEY`: Lấy API Key tại [OpenRouter](https://openrouter.ai/).
+- `TAVILY_API_KEY`: Lấy API Key miễn phí tại [Tavily API Platform](https://app.tavily.com/home) (Công cụ AI Search & RAG chuyên dụng cho AI Agents).
+- `AI_PRIMARY_PROVIDER`: Chọn nhà cung cấp AI chính mặc định toàn hệ thống (`gemini` hoặc `openrouter`).
+
+#### 2. Model AI & Cấu Hình Tối Ưu:
+- **Google Gemini (Chính):** `gemini-3.6-flash` (Chuẩn Google AI Studio thế hệ mới, tối ưu tốc độ phản hồi ~0.5s - 0.8s & trí tuệ).
+- **Google Gemini (Tùy chọn khác):** `gemini-3.5-flash-lite` (Phản hồi siêu nhanh).
+- **OpenRouter (Dự phòng & Thay thế):** `openrouter/free` (Tự động định tuyến sang các model miễn phí tốt nhất như `nex-agi/nex-n2.5-mini:free`, `liquid/lfm-2.5-2.6b:free`, `inclusionai/ling-3.0-flash-vl:free`...).
+- **Giới hạn Output Token:** `maxOutputTokens: 2048` (Tối ưu hóa độ dài phản hồi đầy đủ, không bị đứt đoạn và tiết kiệm thời gian tạo văn bản).
+- **Hệ thống In-Memory RAM Cache:**
+  - **Tri thức Server:** Tự động lưu cache RAM với TTL 3 phút (phản hồi 0ms từ câu hỏi thứ 2). Tự động xóa/làm mới khi Admin dùng `/setup knowledge`.
+  - **Tavily AI Search:** Tự động lưu cache RAM với TTL 15 phút kèm cơ chế chuẩn hóa từ khóa và dấu câu.
+
+#### 3. Nguồn Dữ Liệu AI Đọc & Hiểu Server (RAG / Context):
+AI Assistant trả lời câu hỏi dựa trên kiến trúc phân luồng thông minh:
+1. **Dữ liệu động từ Discord API (`serverContextService.js`):** Tự động đọc tên server, số thành viên, danh sách kênh chat/voice, danh sách roles, danh sách bot và toàn bộ lệnh bot đang có trong server (chạy song song qua `Promise.all`).
+2. **Cơ sở tri thức Discord Động & Tùy Chỉnh (`serverKnowledgeService.js`):**
+   - Đọc **Tin nhắn ghim (Pinned Messages & Embeds)** từ các kênh tri thức do Admin chỉ định.
+   - Đọc **Tin nhắn cụ thể** và **Văn bản tùy chỉnh** do Admin cấu hình qua lệnh `/setup knowledge`.
+   - Cơ chế so khớp nguyên từ (`Word Token Matching`) kết hợp bộ lọc Stop-Words tiếng Việt loại bỏ hoàn toàn nhận diện nhầm.
+3. **Tìm kiếm Internet Thời gian thực (`tavilySearchService.js`):**
+   - Khi câu hỏi nằm ngoài tri thức server, bot tự động tra cứu bằng **Tavily AI Search Platform** với cơ chế đa tầng: **Basic** (tiết kiệm credits & phản hồi nhanh) ➔ Tự động nâng cấp lên **Advanced** (chuyên sâu) nếu kết quả cần thêm dữ liệu đối chiếu.
+   - Tự động bảo vệ các câu hỏi tra cứu thực tế (`tên thật`, `sinh năm`, `tiểu sử`, `tuyển thủ`, `thời tiết`...) luôn luôn kích hoạt tìm kiếm Web RAG.
+
+#### 4. Cấu Hình Nhà Cung Cấp Chính (Primary) & Model Trực Tiếp Trong Discord:
+Quản trị viên có thể chọn Nhà cung cấp AI làm **Chính (Primary)** và cấu hình Model cho riêng Server của mình:
+
+- **Xem trạng thái AI hiện tại của Server:**
+  ```
+  /setup ai status
+  !setup ai status
+  ```
+
+- **Chọn Nhà Cung Cấp AI Chính (Primary Provider):**
+  *(Bot sẽ ưu tiên gọi Provider chính trước, nếu xảy ra sự cố hoặc hết Quota sẽ tự động fallback sang Provider còn lại)*
+  ```
+  /setup ai set-primary provider:openrouter   (hoặc provider:gemini)
+  !setup ai primary openrouter               (hoặc !setup primary openrouter)
+  !setup ai primary gemini                   (hoặc !setup primary gemini)
+  ```
+
+- **Đổi Model Google Gemini:**
+  ```
+  /setup ai set-model provider:gemini model:gemini-3.6-flash
+  !setup ai set gemini gemini-3.5-flash-lite
+  ```
+
+- **Đổi Model OpenRouter:**
+  ```
+  /setup ai set-model provider:openrouter model:openrouter/free
+  !setup ai set openrouter nex-agi/nex-n2.5-mini:free
+  ```
+
+- **Đặt lại cấu hình AI về mặc định:**
+  ```
+  /setup ai reset-model provider:all          (hoặc provider:primary / provider:gemini / provider:openrouter)
+  !setup ai reset all
+  ```
+
+#### 5. Cấu Hình Nguồn Dữ Liệu Server Cho AI Trực Tiếp Từ Discord (/setup knowledge & !setup knowledge):
+*(Yêu cầu quyền: **Quản trị viên / Manage Server**)*
+
+Thay vì phải chỉnh sửa file thủ công trên hosting, Quản trị viên có thể cấu hình nguồn tri thức động cho AI ngay trong Discord:
+
+- **Thêm/Xóa Kênh Tri Thức Đa Kênh:** *(AI sẽ tự động đọc tất cả các tin nhắn ghim - Pinned Messages & Embeds từ toàn bộ các kênh này theo thời gian thực)*
+  ```
+  /setup knowledge add-channel channel:#rule
+  /setup knowledge add-channel channel:#data-server
+  /setup knowledge remove-channel channel:#data-server
+  !setup knowledge add-channel #rule
+  !setup knowledge remove-channel #data-server
+  ```
+
+- **Thêm/Xóa Nhiều Tin Nhắn Chỉ Định từ bất kỳ kênh nào (bằng Link hoặc ID tin nhắn + Kênh):** *(Bạn có thể đứng ở bất kỳ kênh nào trong server để thêm tin nhắn của kênh khác)*
+  ```
+  # Thêm bằng Link tin nhắn (tự động nhận diện kênh và ID tin nhắn):
+  /setup knowledge add-message message:https://discord.com/channels/123/456/789
+  !setup knowledge add-message https://discord.com/channels/123/456/789
+
+  # Thêm bằng ID tin nhắn + chọn Kênh:
+  /setup knowledge add-message message:789123456789012345 channel:#thong-bao
+  !setup knowledge add-message 789123456789012345 #thong-bao
+
+  # Xóa tin nhắn khỏi danh sách tri thức:
+  /setup knowledge remove-message message:https://discord.com/channels/123/456/789
+  !setup knowledge remove-message 789123456789012345
+  ```
+
+- **Thêm/Xóa Nhiều Đoạn Văn Bản Quy Định / Thông Tin Bổ Sung Tùy Chỉnh:**
+  ```
+  # Thêm đoạn văn bản tùy chỉnh:
+  /setup knowledge add-text content:Server chuyên về PUBG và lập trình Node.js.
+  /setup knowledge add-text content:Quy định phòng thoại: Không bật mic khi đang ăn uống hoặc ồn ào.
+  !setup knowledge text Server chuyên về PUBG và lập trình Node.js.
+  !setup knowledge add-text Quy định phòng thoại: Không bật mic khi đang ăn uống hoặc ồn ào.
+
+  # Xóa đoạn văn bản theo số thứ tự (Xem số thứ tự trong /setup knowledge status):
+  /setup knowledge remove-text index:1
+  !setup knowledge remove-text 1
+  ```
+
+- **Xem trạng thái & Đặt lại cấu hình dữ liệu Server:**
+  ```
+  /setup knowledge status                     (hoặc !setup knowledge status)
+  /setup knowledge reset                      (hoặc !setup knowledge reset)
+  ```
+
+> [!TIP]
+> **Cơ chế Phân Luồng Thông Minh (Dynamic Keyword Matching - Hỗ trợ Tiếng Việt Có Dấu & Không Dấu):**
+> Khi người dùng đặt câu hỏi bằng lệnh `!ask` hoặc `/ask`, Bot tự động phân tích và so khớp từ khóa với toàn bộ nội dung tin nhắn ghim trong các kênh tri thức (hỗ trợ cả gõ có dấu như *"nội quy"*, *"bảo vệ tài khoản"* lẫn không dấu như *"noi quy"*, *"bao ve tai khoan"*).
+> * Nếu khớp dữ liệu nội bộ: Bot lập tức trả lời bằng dữ liệu server mà **không gọi tìm kiếm web** $\rightarrow$ Tiết kiệm API và phản hồi siêu tốc (~0.5s).
+> * Nếu không khớp dữ liệu nội bộ: Bot tự động chuyển tiếp tra cứu Internet bằng **Tavily AI Search RAG** để cung cấp câu trả lời thời gian thực chính xác nhất.
 
 ---
 

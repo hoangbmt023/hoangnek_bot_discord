@@ -4,9 +4,15 @@ Bot Discord được xây dựng bằng **Node.js** và thư viện **discord.js
 
 ---
 
-## 🚀 Tính năng chính
+- 🤖 **Trợ Lý AI Assistant Thông Minh (Prefix `!ask` & Slash `/ask`)**:
+  - **Tích hợp Google Gemini & Đa Tầng Fallback OpenRouter**: Sử dụng Google Gemini (`gemini-3.6-flash`, `gemini-3.5-flash-lite`...) làm provider chính với `maxOutputTokens: 2048`, tự động fallback an toàn sang OpenRouter (`openrouter/free`, `nex-agi/nex-n2.5-mini:free`, `liquid/lfm-2.5-2.6b:free`...) khi gặp lỗi 429 Quota Exceeded hoặc sự cố mạng.
+  - **Tavily AI Search RAG Đa Tầng (Cascading Search)**: Tự động tra cứu thông tin thời gian thực từ Internet bằng Tavily Search Platform với cơ chế tự động nâng cấp: `basic` ➔ `advanced` khi cần bổ sung dữ liệu đối chiếu, kèm bộ nhớ đệm Cache 15 phút.
+  - **Cơ sở Tri thức Động từ Discord (/setup knowledge)**: Tự động đọc và thấu hiểu toàn diện nội quy máy chủ, thông báo và dữ liệu ghim (Pinned Messages & Embeds), tin nhắn chỉ định và văn bản tùy chỉnh, kèm RAM Cache (TTL 3 phút, phản hồi 0ms).
+  - **Tùy biến Model AI theo từng Server (/setup ai & !setup ai)**: Quản trị viên có thể tự do đổi model Gemini, OpenRouter hoặc chọn Provider chính cho riêng Server của mình qua lệnh `/setup ai set-model` hoặc `!setup ai set <provider> <model>`.
+  - **Bộ nhớ hội thoại ngắn hạn (Short-term Context Memory)**: Lưu trữ lịch sử hỏi đáp gần nhất, phân tách độc lập theo từng Server/User, tự động giải phóng bộ nhớ sau 15 phút.
+  - **Chống spam (Rate Limit)**: Tự động giới hạn 1 request / 5 giây mỗi user.
 
-- 🎵 **Hệ thống Phát Nhạc Cao Cấp (Prefix `s!` & Slash `/music`)**:
+- 🎵 **Hệ thống Phát Nhạc Cao Cấp (Duy nhất tiền tố `s!` & Slash `/music`)**:
   - **YouTube (`yt-dlp + FFmpeg Native OggOpus`)**: Phát trực tiếp video, playlist hoặc tìm kiếm từ khóa với âm thanh chuẩn Native OggOpus (48kHz Stereo, 128kbps), giải mã đa luồng bằng FFmpeg C Native, loại bỏ hoàn toàn rè tiếng (crackling), giật lag (jitter) và 403 Forbidden.
   - **Spotify (Hybrid Album Resolver & RAM Cache 0ms)**:
     - **In-Memory LRU Cache:** Lưu trữ 1,000 bài hát gần nhất trong RAM (TTL 2 giờ, tiêu thụ chỉ ~1MB RAM), phản hồi ngay lập tức trong 0ms khi phát lại/lặp bài.
@@ -17,14 +23,14 @@ Bot Discord được xây dựng bằng **Node.js** và thư viện **discord.js
   - **Từ chối link không hợp lệ**: Tự động chặn các URL không được hỗ trợ (SoundCloud, Facebook, TikTok...) để bảo đảm an toàn.
   - **Đầy đủ tính năng điều khiển**: `s!play` (`s!p`), `s!pause`, `s!resume`, `s!skip`, `s!stop`, `s!queue`, `s!np`, `s!volume`, `s!loop`, `s!shuffle`, `s!remove`, `s!clear`, `s!leave`.
   - **Tự động rời phòng (Auto Leave)**: Tự động ngắt kết nối sau 3 phút không hoạt động hoặc khi phòng voice trống để tối ưu tài nguyên.
-- 🔒 **Phân Quyền Kênh Lệnh (/setup & s!setup)**:
+- 🔒 **Phân Quyền Kênh Lệnh (/setup & !setup)**:
   - Mặc định khóa lệnh ở tất cả các kênh để chống spam chat.
-  - Quản trị viên chỉ định các kênh văn bản được phép dùng lệnh qua `/setup channel add` hoặc `s!setup channel add`.
+  - Quản trị viên chỉ định các kênh văn bản được phép dùng lệnh qua `/setup channel add` hoặc `!setup channel add`.
 - 🌟 **Thông báo Chào mừng & Tạm biệt Động (Multi-Guild Welcome & Leave)**:
   - Bắt sự kiện `guildMemberAdd` / `guildMemberRemove` và gửi Embed Card đẹp mắt.
   - **Mặc định**: Tự động gửi vào **Kênh hệ thống (System Channel)** của Server.
-  - **Tùy chỉnh riêng cho từng Server**: Cài đặt qua lệnh `/setup notify set` hoặc `s!setup notify <welcome|leave> #kênh` (hoặc `s!setup welcome #kênh`, `s!setup leave #kênh`), không phụ thuộc file `.env`.
-  - Khôi phục mặc định dễ dàng bằng `/setup notify reset` hoặc `s!setup notify reset`.
+  - **Tùy chỉnh riêng cho từng Server**: Cài đặt qua lệnh `/setup notify set` hoặc `!setup notify <welcome|leave> #kênh` (hoặc `!setup welcome #kênh`, `!setup leave #kênh`), không phụ thuộc file `.env`.
+  - Khôi phục mặc định dễ dàng bằng `/setup notify reset` hoặc `!setup notify reset`.
 - 🌐 **Hỗ Trợ Đa Server Toàn Diện (Multi-Guild)**:
   - Tự động bắt sự kiện `guildCreate` khi được mời vào server mới và gửi hướng dẫn thiết lập nhanh.
   - Tự động đăng ký Slash Commands toàn cục (Global) cho mọi Server bot tham gia.
@@ -37,7 +43,7 @@ Bot Discord được xây dựng bằng **Node.js** và thư viện **discord.js
   - Quản lý thành viên miễn trừ kiểm duyệt ngôn từ độc hại (`moderation`) qua các subcommand: `add`, `remove`, `list`, `clear`.
   - Hỗ trợ thêm/xóa nhiều user cùng lúc (`@user1, @user2`).
   - Giao diện Embed tối giản, chuyên nghiệp với bảng màu 1-2 tone đồng nhất.
-  - Dữ liệu Whitelist được lưu trữ tự động vào `data/whitelist.json`.
+  - Dữ liệu Whitelist được lưu trữ tự động vào `data/guild_settings.json`.
 - 📖 **Trợ Giúp Từng Chức Năng (Slash Command `/help [feature]`)**:
   - Xem hướng dẫn chi tiết theo từng module: `all` (Tổng quan), `music` (Phát nhạc), `setup` (Trung tâm cấu hình), `whitelist` (Quản lý Whitelist), `feature` (Bật/tắt tính năng), `moderation` (Lọc ngôn từ & Bảng phạt), `notifications` (Thông báo chào mừng/tạm biệt).
 - 🎛️ **Bật/Tắt Tính Năng Linh Hoạt (Slash Command `/setup feature`)**:
@@ -63,22 +69,26 @@ hoangnek_bot_discord/
 ├── .github/workflows/        # CI/CD Workflows (GitHub Actions)
 │   ├── ci.yml                # CI: Kiểm tra cú pháp và bảo mật code
 │   └── cd-production.yml     # CD: Tự động deploy lên cPanel Linux khi merge main
+├── bin/                      # Thư mục chứa binary thực thi
+│   └── yt-dlp.exe            # Binary yt-dlp tự động tải & cập nhật giải mã âm thanh
 ├── data/
-│   ├── channel_setup.json    # Cấu hình phân quyền kênh văn bản cho phép
-│   ├── guild_settings.json   # Cài đặt bật/tắt tính năng & kênh thông báo theo Server
-│   └── whitelist.json        # Dữ liệu Whitelist lưu trữ cục bộ
+│   └── guild_settings.json   # Quản lý toàn bộ cấu hình từng Server: Features, Kênh thông báo, Whitelist, Kênh lệnh, Model AI & Kênh Tri Thức Dynamic
 ├── docs/                     # Tài liệu hướng dẫn chi tiết
 │   ├── MUSIC_GUIDE.md        # Hướng dẫn chi tiết hệ thống Phát Nhạc & Cấu hình kênh
-│   ├── SETUP_GUIDE.md        # Hướng dẫn tạo Bot Discord & cấp quyền Intent
+│   ├── SETUP_GUIDE.md        # Hướng dẫn tạo Bot Discord, cấp quyền Intent & cấu hình AI
 │   ├── PERMISSIONS_GUIDE.md  # Hướng dẫn phân quyền & kiểm soát truy cập lệnh
 │   ├── ARCHITECTURE.md       # Giải thích kiến trúc SOLID & cách mở rộng
 │   ├── CICD_GUIDE.md         # Hướng dẫn cấu hình CI/CD và GitHub Secrets
 │   └── MODERATION_GUIDE.md   # Hướng dẫn chi tiết hệ thống Lọc ngôn từ & Hate Speech
+├── logs/                     # Lưu trữ log vận hành bot
+│   ├── app.log               # Log tổng hợp thông tin hoạt động
+│   ├── error.log             # Log riêng các lỗi phát sinh
+│   └── daily/                # Log được tự động phân tách theo ngày
 ├── src/
 │   ├── commands/
-│   │   └── slashCommands.js  # Cấu hình & Đăng ký Slash Command (/wl, /feature, /setup, /music, /help)
+│   │   └── slashCommands.js  # Cấu hình & Đăng ký Slash Command (/ask, /setup, /music, /help)
 │   ├── config/
-│   │   ├── env.js            # Nạp và kiểm tra tính hợp lệ của biến môi trường
+│   │   ├── env.js            # Nạp và kiểm tra tính hợp lệ của biến môi trường (AI & Bot)
 │   │   └── moderation.js     # Cấu hình ngưỡng phạt và nhãn phân loại tiếng Việt
 │   ├── core/
 │   │   ├── BotClient.js      # Khởi tạo Discord Client & quản lý vòng đời bot
@@ -89,10 +99,11 @@ hoangnek_bot_discord/
 │   │   │   └── ready.js      # Sự kiện khi Bot online & đăng ký slash command
 │   │   └── guild/
 │   │       ├── guildCreate.js       # Sự kiện khi Bot được thêm vào server mới
-│   │       ├── guildMemberAdd.js    # Sự kiện thành viên vào server
-│   │       ├── guildMemberRemove.js # Sự kiện thành viên rời server
-│   │       ├── interactionCreate.js # Xử lý Slash Command (/setup, /music, /wl, /feature, /help)
-│   │       └── messageCreate.js     # Xử lý tin nhắn, s! music, s!setup và kiểm duyệt
+│   │       ├── guildMemberAdd.js    # Sự kiện thành viên vào server (Gửi thẻ Welcome)
+│   │       ├── guildMemberRemove.js # Sự kiện thành viên rời server (Gửi thẻ Leave)
+│   │       ├── interactionCreate.js # Xử lý Slash Command (/ask, /setup, /music, /help) & Nút bấm
+│   │       ├── messageCreate.js     # Điều phối tin nhắn (!ask, s! music, !setup) & kiểm duyệt
+│   │       └── voiceStateUpdate.js  # Giám sát trạng thái voice, tự động rời phòng trống
 │   ├── music/
 │   │   ├── Track.js                 # Đại diện bài hát & nạp Audio Resource
 │   │   ├── YtDlpService.js          # Dịch vụ yt-dlp & FFmpeg stream PCM chất lượng cao
@@ -100,37 +111,52 @@ hoangnek_bot_discord/
 │   │   ├── GuildQueue.js            # Quản lý hàng đợi nhạc, Player và Voice Connection
 │   │   └── MusicManager.js          # Quản lý singleton GuildQueue các Server
 │   ├── services/
+│   │   ├── ai/                      # Module Trợ lý AI Assistant Thông Minh & RAG
+│   │   │   ├── aiService.js              # Bộ điều phối trung tâm (Primary & Fallback)
+│   │   │   ├── geminiService.js          # Tích hợp Google Gemini API
+│   │   │   ├── openrouterService.js      # Tích hợp OpenRouter Fallback Multi-model
+│   │   │   ├── tavilySearchService.js    # Tích hợp Tavily AI Search RAG (Basic -> Advanced)
+│   │   │   ├── serverKnowledgeService.js # Quản lý cơ sở tri thức Server (Discord Dynamic RAG)
+│   │   │   ├── serverContextService.js   # Trích xuất ngữ cảnh server thời gian thực
+│   │   │   ├── promptService.js          # Xây dựng System Prompt & User Prompt chuẩn hóa
+│   │   │   └── memoryService.js          # Bộ nhớ hội thoại ngắn hạn theo Guild/User
+│   │   ├── toxicity/                # Các bộ phân loại ngôn từ độc hại (Strategy Pattern)
+│   │   │   ├── IToxicityDetector.js      # Interface chuẩn hóa cho bộ lọc ngôn từ
+│   │   │   ├── RuleBasedDetector.js      # Bộ lọc dựa trên từ khóa Regex tốc độ cao
+│   │   │   ├── AIModelDetector.js        # Phân loại ngữ cảnh AI
+│   │   │   └── HybridToxicityDetector.js # Bộ lọc lai ghép kết hợp Rule + AI Model
+│   │   ├── askCommandHandler.js     # Xử lý lệnh hỏi đáp !ask / /ask
 │   │   ├── channelSetupService.js   # Quản lý cấu hình phân quyền kênh
-│   │   ├── setupCommandHandler.js   # Xử lý lệnh cấu hình kênh (s!setup / /setup)
-│   │   ├── musicCommandHandler.js   # Xử lý toàn bộ lệnh phát nhạc prefix s!
+│   │   ├── setupCommandHandler.js   # Xử lý lệnh cấu hình trung tâm (!setup ...)
+│   │   ├── musicCommandHandler.js   # Xử lý toàn bộ lệnh phát nhạc tiền tố s!
 │   │   ├── musicButtonHandler.js    # Xử lý tương tác nút bấm Player & phân trang Hàng đợi
-│   │   ├── memberNotificationService.js # Business logic gửi thông báo thành viên
-│   │   ├── moderationService.js         # Business logic kiểm duyệt tin nhắn
+│   │   ├── memberNotificationService.js # Business logic gửi thông báo Chào mừng/Tạm biệt
+│   │   ├── moderationService.js         # Business logic kiểm duyệt tin nhắn tự động
 │   │   ├── warningStore.js              # Quản lý điểm phạt & thời gian hết hạn
 │   │   ├── whitelistService.js          # Quản lý lưu trữ Whitelist theo Guild
-│   │   ├── whitelistCommandHandler.js   # Xử lý câu lệnh !whitelist / !wl
-│   │   ├── guildSettingsService.js      # Quản lý cấu hình bật/tắt tính năng & kênh thông báo theo Guild
-│   │   ├── featureCommandHandler.js     # Xử lý câu lệnh !feature / !toggle
-│   │   ├── helpCommandHandler.js        # Xử lý câu lệnh !help / /help / s!help
-│   │   └── toxicity/                    # Các bộ phân loại độc hại (Strategy Pattern)
-│   │       ├── IToxicityDetector.js
-│   │       ├── RuleBasedDetector.js
-│   │       ├── AIModelDetector.js
-│   │       └── HybridToxicityDetector.js
+│   │   ├── whitelistCommandHandler.js   # Xử lý lệnh cấu hình !setup whitelist
+│   │   ├── guildSettingsService.js      # Quản lý cấu hình tính năng & AI Model theo Guild
+│   │   ├── featureCommandHandler.js     # Xử lý lệnh cấu hình !setup feature
+│   │   └── helpCommandHandler.js        # Xử lý lệnh trợ giúp !help / /help / s!help
 │   ├── utils/
-│   │   ├── embedBuilder.js   # Module chuyên tạo Embed Card Discord tiếng Việt
+│   │   ├── embedBuilder.js   # Module chuyên tạo Embed Card Discord tiếng Việt chuẩn UI
 │   │   └── logger.js         # Hệ thống log màu sắc theo thời gian thực
 │   └── index.js              # Entrypoint khởi chạy ứng dụng
 ├── tests/
-│   ├── moderation.test.js         # Test kiểm duyệt ngôn từ & điểm phạt
+│   ├── ai.test.js                 # Test toàn diện AI Assistant, Tavily RAG & Setup Model
+│   ├── moderation.test.js         # Test kiểm duyệt ngôn từ & điểm phạt lũy tiến
 │   ├── music_setup.test.js        # Test hệ thống phát nhạc & phân quyền kênh
-│   ├── music_buttons.test.js      # Test nút bấm Player & phân trang
-│   └── notification_setup.test.js # Test cấu hình kênh thông báo & đa server
+│   ├── music_buttons.test.js      # Test nút bấm Player & phân trang tương tác
+│   ├── notification_setup.test.js # Test cấu hình kênh thông báo & đa server
+│   ├── test_ai_models.test.js     # Test phân luồng và kết nối các AI Model
+│   ├── test_all_live_models.test.js # Test kiểm tra trực tiếp các Model Gemini/OpenRouter live
+│   └── test_models_fast.test.js   # Test kiểm tra nhanh tốc độ phản hồi của các Model
 ├── .cpanel.yml               # Cấu hình cPanel Git Deployment native
 ├── .env.example              # Mẫu cấu hình môi trường
 ├── .env.development          # Cấu hình môi trường dev (đã được .gitignore)
 ├── .env.production           # Cấu hình môi trường prod (đã được .gitignore)
 ├── .gitignore
+├── LICENSE                   # Giấy phép mã nguồn mở MIT
 ├── package.json
 └── README.md
 ```
@@ -181,10 +207,21 @@ NODE_ENV=development
 DISCORD_TOKEN=dien_token_bot_cua_ban_tai_day
 CLIENT_ID=dien_application_id_cua_ban
 GUILD_ID= # (Tùy chọn) Chỉ điền nếu muốn đồng bộ Slash Commands tức thì khi test dev
+
+# Cấu hình AI Assistant & Tavily Search RAG
+GEMINI_API_KEY=dien_gemini_api_key
+OPENROUTER_API_KEY=dien_openrouter_api_key
+TAVILY_API_KEY=dien_tavily_api_key
 ```
 
+> [!TIP]
+> **Lưu ý quan trọng về biến `GUILD_ID`:**
+> - **Để trống (`GUILD_ID=`)**: Bot sẽ đăng ký Slash Commands ở chế độ **Toàn Cầu (Global)**. Lệnh sẽ có mặt trên tất cả các server mà Bot tham gia (Discord có thể mất từ 1 đến vài phút để đồng bộ toàn cầu).
+> - **Điền ID Server cụ thể (Ví dụ: `GUILD_ID=123456789012345678`)**: Chỉ sử dụng khi phát triển/test dev. Slash Commands sẽ được cập nhật ngay lập tức (0ms) trong Server đó mà không cần chờ Discord cache toàn cầu.
+
 > [!IMPORTANT]
-> **Lưu ý bắt buộc**: Bạn cần bật cả **SERVER MEMBERS INTENT** và **MESSAGE CONTENT INTENT** trong [Discord Developer Portal](https://discord.com/developers/applications) -> Mục **Bot** để Bot có thể nhận sự kiện thành viên và đọc nội dung tin nhắn phục vụ lọc từ ngữ độc hại. Xem chi tiết tại [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) và [docs/MODERATION_GUIDE.md](docs/MODERATION_GUIDE.md).
+> **Lưu ý bắt buộc về Quyền hạn Bot (Gateway Intents):**
+> Bạn cần bật cả **SERVER MEMBERS INTENT** và **MESSAGE CONTENT INTENT** trong [Discord Developer Portal](https://discord.com/developers/applications) -> Mục **Bot** để Bot có thể nhận sự kiện thành viên và đọc nội dung tin nhắn phục vụ lọc từ ngữ độc hại. Xem chi tiết tại [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) và [docs/MODERATION_GUIDE.md](docs/MODERATION_GUIDE.md).
 
 ### 5. Chạy Bot
 
@@ -214,8 +251,12 @@ GUILD_ID= # (Tùy chọn) Chỉ điền nếu muốn đồng bộ Slash Commands
 - [Giải thích kiến trúc SOLID & Hướng dẫn mở rộng code](docs/ARCHITECTURE.md)
 - [Hướng dẫn thiết lập CI/CD & Deploy tự động lên cPanel Linux](docs/CICD_GUIDE.md)
 
-
 ---
 
 ## 📄 License
-Dự án được phân phối dưới giấy phép **MIT**.
+Dự án được phân phối dưới giấy phép mã nguồn mở **MIT License**. Xem chi tiết toàn văn giấy phép tại [LICENSE](LICENSE) hoặc xem thêm tại [opensource.org/licenses/MIT](https://opensource.org/licenses/MIT).
+
+> **Tóm tắt điều khoản giấy phép MIT:**
+> - **Quyền hạn**: Được phép sử dụng, sao chép, sửa đổi, hợp nhất, xuất bản, phân phối, cấp phép lại và/hoặc bán các bản sao của phần mềm cho mục đích cá nhân lẫn thương mại.
+> - **Nghĩa vụ**: Giữ nguyên thông báo bản quyền gốc và điều khoản cấp phép trong mọi bản sao hoặc phần quan trọng của phần mềm.
+> - **Miễn trừ trách nhiệm**: Phần mềm được cung cấp theo nguyên trạng ("AS IS"), không có bất kỳ hình thức bảo đảm nào và tác giả không chịu trách nhiệm đối với các khiếu nại, thiệt hại hay trách nhiệm pháp lý khác phát sinh từ việc sử dụng phần mềm.

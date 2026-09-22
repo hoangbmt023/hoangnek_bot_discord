@@ -11,12 +11,13 @@ class ChannelSetupService {
   constructor() {
     // Map<guildId, { music: Set<channelId>, commands: Set<channelId> }>
     this.guildChannels = new Map();
-    this.storagePath = path.resolve(process.cwd(), 'data', 'channel_setup.json');
+    this.storagePath = path.resolve(process.cwd(), 'data', 'guild_settings.json');
+    this.legacyStoragePath = path.resolve(process.cwd(), 'data', 'channel_setup.json');
     this.loadFromDisk();
   }
 
   /**
-   * Đọc cấu hình từ file JSON
+   * Đọc cấu hình từ file JSON (hỗ trợ migrate từ channel_setup.json cũ và đọc từ guild_settings.json)
    */
   loadFromDisk() {
     try {
@@ -25,11 +26,37 @@ class ChannelSetupService {
         fs.mkdirSync(dataDir, { recursive: true });
       }
 
+      let hasLegacyData = false;
+
+      // 1. Kiểm tra và migrate từ file legacy channel_setup.json (nếu có)
+      if (fs.existsSync(this.legacyStoragePath)) {
+        try {
+          const rawLegacy = fs.readFileSync(this.legacyStoragePath, 'utf8');
+          const parsedLegacy = JSON.parse(rawLegacy);
+          for (const [guildId, config] of Object.entries(parsedLegacy)) {
+            this.guildChannels.set(guildId, {
+              music: new Set(config.music || []),
+              commands: new Set(config.commands || []),
+            });
+          }
+          hasLegacyData = true;
+          fs.unlinkSync(this.legacyStoragePath);
+          logger.info('[ChannelSetup] Đã di chuyển dữ liệu từ channel_setup.json sang guild_settings.json.');
+        } catch (e) {
+          logger.warn(`[ChannelSetup] Không thể đọc channel_setup.json cũ: ${e.message}`);
+        }
+      }
+
+      // 2. Đọc cấu hình từ guild_settings.json chính
       if (fs.existsSync(this.storagePath)) {
         const raw = fs.readFileSync(this.storagePath, 'utf8');
         const parsed = JSON.parse(raw);
 
-        for (const [guildId, config] of Object.entries(parsed)) {
+        for (const [guildId, guildData] of Object.entries(parsed)) {
+          if (!guildData || typeof guildData !== 'object') continue;
+          const config = guildData.allowedChannels;
+          if (!config || typeof config !== 'object') continue;
+
           this.guildChannels.set(guildId, {
             music: new Set(config.music || []),
             commands: new Set(config.commands || []),
@@ -37,26 +64,48 @@ class ChannelSetupService {
         }
         logger.info('[ChannelSetup] Đã nạp danh sách kênh cho phép từ bộ nhớ.');
       }
+
+      // Lưu lại nếu vừa migrate từ file cũ
+      if (hasLegacyData) {
+        this.saveToDisk();
+      }
     } catch (error) {
-      logger.warn(`[ChannelSetup] Lỗi khi nạp file channel_setup.json: ${error.message}`);
+      logger.warn(`[ChannelSetup] Lỗi khi nạp dữ liệu kênh cho phép: ${error.message}`);
     }
   }
 
   /**
-   * Lưu cấu hình vào file JSON
+   * Lưu cấu hình vào file guild_settings.json
    */
   saveToDisk() {
     try {
-      const exportData = {};
-      for (const [guildId, config] of this.guildChannels.entries()) {
-        exportData[guildId] = {
-          music: Array.from(config.music),
-          commands: Array.from(config.commands),
-        };
+      let exportData = {};
+      if (fs.existsSync(this.storagePath)) {
+        try {
+          exportData = JSON.parse(fs.readFileSync(this.storagePath, 'utf8')) || {};
+        } catch {
+          exportData = {};
+        }
       }
+
+      for (const [guildId, config] of this.guildChannels.entries()) {
+        const m = Array.from(config.music || []);
+        const c = Array.from(config.commands || []);
+
+        if (m.length > 0 || c.length > 0) {
+          exportData[guildId] = exportData[guildId] || {};
+          exportData[guildId].allowedChannels = {
+            music: m,
+            commands: c,
+          };
+        } else if (exportData[guildId] && exportData[guildId].allowedChannels) {
+          delete exportData[guildId].allowedChannels;
+        }
+      }
+
       fs.writeFileSync(this.storagePath, JSON.stringify(exportData, null, 2), 'utf8');
     } catch (error) {
-      logger.error('[ChannelSetup] Lỗi khi lưu file channel_setup.json:', error);
+      logger.error('[ChannelSetup] Lỗi khi lưu dữ liệu kênh vào guild_settings.json:', error);
     }
   }
 

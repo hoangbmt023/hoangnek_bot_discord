@@ -36,6 +36,18 @@ const config = {
     clientId: process.env.CLIENT_ID || '',
     guildId: process.env.GUILD_ID || '', // Tùy chọn: Dùng để đồng bộ Slash Command tức thì trên server test
   },
+  ai: {
+    primaryProvider: (process.env.AI_PRIMARY_PROVIDER || 'gemini').toLowerCase(),
+    geminiApiKey: process.env.GEMINI_API_KEY || '',
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-3.6-flash',
+    openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+    openrouterModel: process.env.OPENROUTER_MODEL || 'openrouter/free',
+    tavilyApiKey: process.env.TAVILY_API_KEY || '',
+    tavilySearchDepth: process.env.TAVILY_SEARCH_DEPTH || 'advanced',
+    tavilyMaxResults: parseInt(process.env.TAVILY_MAX_RESULTS, 10) || 5,
+    requestTimeoutMs: parseInt(process.env.AI_TIMEOUT_MS, 10) || 15000,
+    rateLimitCooldownMs: parseInt(process.env.AI_COOLDOWN_MS, 10) || 5000,
+  },
 };
 
 /**

@@ -108,6 +108,8 @@ function buildFeatureCommand() {
               { name: 'Lọc ngôn từ độc hại & Hate Speech (moderation)', value: 'moderation' },
               { name: 'Thông báo Chào mừng thành viên mới (welcome)', value: 'welcome' },
               { name: 'Thông báo Tạm biệt thành viên (leave)', value: 'leave' },
+              { name: 'Trợ lý AI Assistant (ai)', value: 'ai' },
+              { name: 'Hệ thống Phát nhạc (music)', value: 'music' },
               { name: 'Tất cả các tính năng (all)', value: 'all' }
             )
         )
@@ -125,6 +127,8 @@ function buildFeatureCommand() {
               { name: 'Lọc ngôn từ độc hại & Hate Speech (moderation)', value: 'moderation' },
               { name: 'Thông báo Chào mừng thành viên mới (welcome)', value: 'welcome' },
               { name: 'Thông báo Tạm biệt thành viên (leave)', value: 'leave' },
+              { name: 'Trợ lý AI Assistant (ai)', value: 'ai' },
+              { name: 'Hệ thống Phát nhạc (music)', value: 'music' },
               { name: 'Tất cả các tính năng (all)', value: 'all' }
             )
         )
@@ -161,8 +165,10 @@ function buildHelpCommand() {
         .setRequired(false)
         .addChoices(
           { name: 'Tổng quan tất cả lệnh (all)', value: 'all' },
+          { name: 'Trợ lý AI Assistant (ai)', value: 'ai' },
           { name: 'Hệ thống Phát nhạc (music)', value: 'music' },
-          { name: 'Cấu hình Server & Kênh lệnh (setup)', value: 'setup' },
+          { name: 'Trung tâm Cấu hình Hệ thống (setup)', value: 'setup' },
+          { name: 'Tri thức Server cho AI (knowledge)', value: 'knowledge' },
           { name: 'Danh sách trắng Whitelist (whitelist)', value: 'whitelist' },
           { name: 'Bật/Tắt tính năng Bot (feature)', value: 'feature' },
           { name: 'Hệ thống Lọc ngôn từ độc hại (moderation)', value: 'moderation' },
@@ -323,6 +329,8 @@ function buildSetupCommand() {
                   { name: 'Lọc ngôn từ độc hại (moderation)', value: 'moderation' },
                   { name: 'Thông báo Chào mừng thành viên (welcome)', value: 'welcome' },
                   { name: 'Thông báo Tạm biệt thành viên (leave)', value: 'leave' },
+                  { name: 'Trợ lý AI Assistant (ai)', value: 'ai' },
+                  { name: 'Hệ thống Phát nhạc (music)', value: 'music' },
                   { name: 'Tất cả tính năng (all)', value: 'all' }
                 )
             )
@@ -340,6 +348,8 @@ function buildSetupCommand() {
                   { name: 'Lọc ngôn từ độc hại (moderation)', value: 'moderation' },
                   { name: 'Thông báo Chào mừng thành viên (welcome)', value: 'welcome' },
                   { name: 'Thông báo Tạm biệt thành viên (leave)', value: 'leave' },
+                  { name: 'Trợ lý AI Assistant (ai)', value: 'ai' },
+                  { name: 'Hệ thống Phát nhạc (music)', value: 'music' },
                   { name: 'Tất cả tính năng (all)', value: 'all' }
                 )
             )
@@ -409,6 +419,188 @@ function buildSetupCommand() {
           sub
             .setName('status')
             .setDescription('Xem kênh thông báo Chào mừng & Tạm biệt hiện tại của Server')
+        )
+    )
+    // 5. NHÓM CẤU HÌNH AI MODEL (AI: Gemini & OpenRouter)
+    .addSubcommandGroup((group) =>
+      group
+        .setName('ai')
+        .setDescription('Cấu hình mô hình AI (Google Gemini & OpenRouter) cho Server')
+        .addSubcommand((sub) =>
+          sub
+            .setName('set-primary')
+            .setDescription('Chọn Nhà cung cấp AI làm mô hình chính ưu tiên gọi trước')
+            .addStringOption((opt) =>
+              opt
+                .setName('provider')
+                .setDescription('Chọn nhà cung cấp AI làm mặc định chính')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Google Gemini', value: 'gemini' },
+                  { name: 'OpenRouter', value: 'openrouter' }
+                )
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('set-model')
+            .setDescription('Cài đặt Model AI tùy chỉnh cho Server')
+            .addStringOption((opt) =>
+              opt
+                .setName('provider')
+                .setDescription('Nhà cung cấp AI cần thay đổi model')
+                .setRequired(true)
+                .addChoices(
+                  { name: 'Google Gemini', value: 'gemini' },
+                  { name: 'OpenRouter', value: 'openrouter' }
+                )
+            )
+            .addStringOption((opt) =>
+              opt
+                .setName('model')
+                .setDescription('Tên model AI cần sử dụng (tự động gợi ý theo provider hoặc tự nhập)')
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('reset-model')
+            .setDescription('Đặt lại Model AI về cấu hình mặc định của hệ thống')
+            .addStringOption((opt) =>
+              opt
+                .setName('provider')
+                .setDescription('Nhà cung cấp cần đặt lại (mặc định tất cả)')
+                .setRequired(false)
+                .addChoices(
+                  { name: 'Google Gemini (gemini)', value: 'gemini' },
+                  { name: 'OpenRouter (openrouter)', value: 'openrouter' },
+                  { name: 'Nhà cung cấp chính (primary)', value: 'primary' },
+                  { name: 'Tất cả (all)', value: 'all' }
+                )
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('status')
+            .setDescription('Xem thông tin model AI hiện đang kích hoạt trong Server')
+        )
+    )
+    // 6. NHÓM CẤU HÌNH TRI THỨC SERVER CHO AI (KNOWLEDGE)
+    .addSubcommandGroup((group) =>
+      group
+        .setName('knowledge')
+        .setDescription('Cấu hình cơ sở tri thức của Server cho AI Assistant')
+        .addSubcommand((sub) =>
+          sub
+            .setName('add-channel')
+            .setDescription('Thêm kênh Discord vào danh sách nguồn tri thức cho AI (có thể thêm nhiều kênh)')
+            .addChannelOption((opt) =>
+              opt
+                .setName('channel')
+                .setDescription('Chọn kênh văn bản chứa nội quy/thông báo của server')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('remove-channel')
+            .setDescription('Xóa kênh khỏi danh sách nguồn tri thức của AI')
+            .addChannelOption((opt) =>
+              opt
+                .setName('channel')
+                .setDescription('Kênh cần xóa khỏi danh sách')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('add-message')
+            .setDescription('Thêm tin nhắn cụ thể vào nguồn tri thức cho AI (dán Link tin nhắn hoặc nhập ID + Kênh)')
+            .addStringOption((opt) =>
+              opt
+                .setName('message')
+                .setDescription('Link tin nhắn Discord (chứa cả kênh & ID) hoặc ID tin nhắn')
+                .setRequired(true)
+            )
+            .addChannelOption((opt) =>
+              opt
+                .setName('channel')
+                .setDescription('Kênh chứa tin nhắn (bắt buộc nếu bạn chỉ nhập ID tin nhắn)')
+                .setRequired(false)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('remove-message')
+            .setDescription('Xóa một tin nhắn khỏi danh sách tri thức của AI')
+            .addStringOption((opt) =>
+              opt
+                .setName('message')
+                .setDescription('Link tin nhắn hoặc ID tin nhắn cần xóa')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('set-message')
+            .setDescription('Thêm tin nhắn cụ thể làm nguồn tri thức cho AI (qua Link hoặc ID tin nhắn)')
+            .addStringOption((opt) =>
+              opt
+                .setName('message')
+                .setDescription('Link tin nhắn (Message Link) hoặc ID của tin nhắn')
+                .setRequired(true)
+            )
+            .addChannelOption((opt) =>
+              opt
+                .setName('channel')
+                .setDescription('Kênh chứa tin nhắn (nếu bạn chỉ nhập ID thay vì link)')
+                .setRequired(false)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('add-text')
+            .setDescription('Thêm một đoạn văn bản tri thức/nội quy tùy chỉnh cho AI')
+            .addStringOption((opt) =>
+              opt
+                .setName('content')
+                .setDescription('Nội dung văn bản tri thức/nội quy của server')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('remove-text')
+            .setDescription('Xóa một đoạn văn bản tùy chỉnh theo số thứ tự (1, 2, 3...)')
+            .addIntegerOption((opt) =>
+              opt
+                .setName('index')
+                .setDescription('Số thứ tự của đoạn văn bản cần xóa (Xem trong /setup knowledge status)')
+                .setRequired(true)
+                .setMinValue(1)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('set-text')
+            .setDescription('Cung cấp/thêm đoạn văn bản tri thức/nội quy tùy chỉnh cho AI')
+            .addStringOption((opt) =>
+              opt
+                .setName('content')
+                .setDescription('Nội dung văn bản tri thức/nội quy của server')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('status')
+            .setDescription('Xem thông tin cấu hình tri thức AI hiện tại của Server')
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('reset')
+            .setDescription('Xóa toàn bộ tri thức tùy chỉnh đã cài đặt cho AI trong Server')
         )
     );
 }
@@ -506,17 +698,33 @@ function buildMusicCommand() {
 }
 
 /**
- * Lấy mảng JSON dữ liệu các Slash Command (/setup, /music, /help)
+ * Xây dựng cấu hình Slash Command cho /ask (Hỏi đáp AI Assistant)
+ */
+function buildAskCommand() {
+  return new SlashCommandBuilder()
+    .setName('ask')
+    .setDescription('Hỏi đáp với AI Assistant về kiến thức chung hoặc thông tin Server')
+    .setDMPermission(false)
+    .addStringOption((opt) =>
+      opt
+        .setName('question')
+        .setDescription('Nội dung câu hỏi bạn muốn gửi tới AI Assistant')
+        .setRequired(true)
+    );
+}
+
+/**
+ * Lấy mảng JSON dữ liệu các Slash Command (/setup, /music, /help, /ask)
  */
 function getSlashCommandsData() {
   return [
     buildSetupCommand().toJSON(),
     buildMusicCommand().toJSON(),
     buildHelpCommand().toJSON(),
+    buildAskCommand().toJSON(),
   ];
 }
 
-/**
 /**
  * Đăng ký Slash Command Toàn Cầu (Global) cho tất cả Server Discord
  * Tự động xóa sạch Guild Commands cục bộ trên mọi server để chống trùng lặp lệnh (Double Slash Commands).
@@ -562,6 +770,7 @@ module.exports = {
   buildSetupCommand,
   buildMusicCommand,
   buildHelpCommand,
+  buildAskCommand,
   getSlashCommandsData,
   registerSlashCommands,
 };

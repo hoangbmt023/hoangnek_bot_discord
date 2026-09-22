@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 
 /**
  * WhitelistCommandHandler
- * Xử lý các câu lệnh quản lý danh sách Whitelist trong kênh chat (/wl, !wl, s!setup whitelist)
+ * Xử lý các câu lệnh quản lý danh sách Whitelist trong kênh chat (!setup whitelist, /setup whitelist)
  * Hỗ trợ quản lý Người dùng (User), Vai trò (Role), và Kênh (Channel)
  */
 class WhitelistCommandHandler {
@@ -17,10 +17,10 @@ class WhitelistCommandHandler {
     if (!content || typeof content !== 'string') return false;
     const lower = content.trim().toLowerCase();
     return (
-      lower.startsWith('!whitelist') ||
-      lower.startsWith('!wl') ||
-      lower.startsWith('/whitelist') ||
-      lower.startsWith('/wl')
+      lower.startsWith('!setup whitelist') ||
+      lower.startsWith('/setup whitelist') ||
+      lower.startsWith('!setup wl') ||
+      lower.startsWith('/setup wl')
     );
   }
 
@@ -62,23 +62,30 @@ class WhitelistCommandHandler {
     const rawContent = message.content.trim();
     try {
       logger.info(
-        `[TextCommand] ${message.author.tag} (${message.author.id}) đã gọi lệnh Whitelist: "${rawContent}" tại Server "${message.guild.name}"`
+        `[TextCommand] ${message.author.tag} (${message.author.id}) đã gọi lệnh Setup Whitelist: "${rawContent}" tại Server "${message.guild.name}"`
       );
 
-      const firstSpaceIdx = rawContent.indexOf(' ');
-      if (firstSpaceIdx === -1) {
+      let tokens = rawContent.split(/\s+/);
+      if (tokens[0] && (tokens[0].toLowerCase() === '!setup' || tokens[0].toLowerCase() === '/setup')) {
+        tokens = tokens.slice(1);
+      }
+      if (tokens[0] && ['whitelist', 'wl'].includes(tokens[0].toLowerCase())) {
+        tokens = tokens.slice(1);
+      } else if (tokens.length > 0) {
+        tokens = tokens.slice(1);
+      }
+
+      if (tokens.length === 0) {
         return this.sendHelp(message);
       }
 
-      const restOfCommand = rawContent.slice(firstSpaceIdx + 1).trim();
-      const tokens = restOfCommand.split(/\s+/);
       const firstArg = tokens[0].toLowerCase();
       const guildId = message.guild.id;
 
       if (firstArg === 'add' || firstArg === 'them') {
-        return this.parseAndAdd(message, guildId, tokens.slice(1), restOfCommand);
+        return this.parseAndAdd(message, guildId, tokens.slice(1), rawContent);
       } else if (firstArg === 'remove' || firstArg === 'xoa' || firstArg === 'del') {
-        return this.parseAndRemove(message, guildId, tokens.slice(1), restOfCommand);
+        return this.parseAndRemove(message, guildId, tokens.slice(1), rawContent);
       } else if (firstArg === 'list' || firstArg === 'danhsach' || firstArg === 'show') {
         const target = tokens[1] || 'all';
         const feature = tokens[2] || 'toxic';
@@ -90,8 +97,8 @@ class WhitelistCommandHandler {
       } else if (firstArg === 'help') {
         return this.sendHelp(message);
       } else {
-        // Cú pháp rút gọn: !wl role @Role / !wl user @User / !wl @user
-        return this.parseAndAdd(message, guildId, tokens, restOfCommand);
+        // Cú pháp: !setup whitelist user @User / role @Role
+        return this.parseAndAdd(message, guildId, tokens, rawContent);
       }
     } catch (error) {
       logger.error('[WhitelistCommandHandler] Lỗi khi xử lý lệnh Whitelist:', error);
@@ -185,9 +192,9 @@ class WhitelistCommandHandler {
         title: 'Cú Pháp Không Hợp Lệ',
         description:
           `**Cú pháp chuẩn:**\n` +
-          `• \`!wl add user @user1, @user2\`\n` +
-          `• \`!wl add role @Role1, @Role2\`\n` +
-          `• \`!wl add channel #kenh-chat\`\n` +
+          `• \`!setup whitelist add user @user1, @user2\`\n` +
+          `• \`!setup whitelist add role @Role1, @Role2\`\n` +
+          `• \`!setup whitelist add channel #kenh-chat\`\n` +
           `• \`/setup whitelist add target:users value:@user1\``,
         success: false,
       });
@@ -223,9 +230,9 @@ class WhitelistCommandHandler {
         title: 'Cú Pháp Không Hợp Lệ',
         description:
           `**Cú pháp chuẩn:**\n` +
-          `• \`!wl remove user @user1\`\n` +
-          `• \`!wl remove role @Role1\`\n` +
-          `• \`!wl remove channel #kenh-chat\``,
+          `• \`!setup whitelist remove user @user1\`\n` +
+          `• \`!setup whitelist remove role @Role1\`\n` +
+          `• \`!setup whitelist remove channel #kenh-chat\``,
         success: false,
       });
       await message.reply({ embeds: [usageEmbed] });
@@ -319,20 +326,20 @@ class WhitelistCommandHandler {
       description:
         `Hệ thống Whitelist miễn trừ kiểm duyệt ngôn từ cho **Người dùng**, **Vai trò (Role)** và **Kênh chat**:\n\n` +
         `**1. Thêm đối tượng vào Whitelist:**\n` +
-        `• \`!wl add user @user1, @user2\` *(Thêm người dùng)*\n` +
-        `• \`!wl add role @Role1, @Role2\` *(Thêm Role miễn trừ)*\n` +
-        `• \`!wl add channel #general, #music\` *(Thêm Kênh miễn trừ)*\n` +
+        `• \`!setup whitelist add user @user1, @user2\` *(Thêm người dùng)*\n` +
+        `• \`!setup whitelist add role @Role1, @Role2\` *(Thêm Role miễn trừ)*\n` +
+        `• \`!setup whitelist add channel #general, #music\` *(Thêm Kênh miễn trừ)*\n` +
         `• \`/setup whitelist add target:users value:@user1\` *(Slash Command)*\n\n` +
         `**2. Xóa đối tượng khỏi Whitelist:**\n` +
-        `• \`!wl remove user @user1\`\n` +
-        `• \`!wl remove role @Role1\`\n` +
-        `• \`!wl remove channel #general\`\n\n` +
+        `• \`!setup whitelist remove user @user1\`\n` +
+        `• \`!setup whitelist remove role @Role1\`\n` +
+        `• \`!setup whitelist remove channel #general\`\n\n` +
         `**3. Xem danh sách Whitelist:**\n` +
-        `• \`!wl list\` *(Xem toàn bộ User, Role, Kênh)*\n` +
-        `• \`!wl list role\` *(Xem riêng danh sách Role)*\n\n` +
+        `• \`!setup whitelist list\` *(Xem toàn bộ User, Role, Kênh)*\n` +
+        `• \`!setup whitelist list role\` *(Xem riêng danh sách Role)*\n\n` +
         `**4. Dọn dẹp danh sách:**\n` +
-        `• \`!wl clear\` *(Xóa toàn bộ)*\n` +
-        `• \`!wl clear role\` *(Xóa toàn bộ Role)*\n\n` +
+        `• \`!setup whitelist clear\` *(Xóa toàn bộ)*\n` +
+        `• \`!setup whitelist clear role\` *(Xóa toàn bộ Role)*\n\n` +
         `*Lưu ý: Chỉ Quản trị viên mới có thể thực thi các lệnh này.*`,
       success: true,
     });

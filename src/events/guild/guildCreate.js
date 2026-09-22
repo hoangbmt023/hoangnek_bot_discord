@@ -1,4 +1,4 @@
-﻿const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { Events, ChannelType, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const BaseEvent = require('../BaseEvent');
 const logger = require('../../utils/logger');
 
@@ -48,10 +48,11 @@ class GuildCreateEvent extends BaseEvent {
         .setDescription(
           'Bot đã sẵn sàng phục vụ server của bạn với các tính năng cao cấp:\n\n' +
           '• 🎵 **Phát Nhạc Cao Cấp:** Dùng lệnh `s!play <tên bài | link>` hoặc `/music play`\n' +
-          '• 🔒 **Phân Quyền Kênh Nhạc:** Quản trị viên dùng `/setup channel add` hoặc `s!setup channel add #kênh` để cấp phép kênh dùng lệnh\n' +
-          '• 🌟 **Thông Báo Vào/Ra:** Mặc định gửi vào Kênh hệ thống này. Có thể tùy chỉnh bằng `/setup notify set` hoặc `s!setup notify <welcome|leave> #kênh`\n' +
+          '• 🔒 **Phân Quyền Kênh Nhạc:** Quản trị viên dùng `/setup channel add` hoặc `!setup channel add #kênh` để cấp phép kênh dùng lệnh\n' +
+          '• 🌟 **Thông Báo Vào/Ra:** Mặc định gửi vào Kênh hệ thống này. Có thể tùy chỉnh bằng `/setup notify set` hoặc `!setup notify <welcome|leave> #kênh`\n' +
+          '• 🤖 **Trợ Lý AI:** Gõ `!ask <câu hỏi>` hoặc `/ask` để hỏi đáp thông minh\n' +
           '• 🛡️ **Lọc Ngôn Từ Độc Hại:** Tự động bảo vệ server khỏi ngôn từ xúc phạm & thù ghét\n' +
-          '• 📖 **Hướng Dẫn Sử Dụng:** Gõ `/help` hoặc `s!help` để xem toàn bộ danh sách lệnh'
+          '• 📖 **Hướng Dẫn Sử Dụng:** Gõ `/help` hoặc `!help` để xem toàn bộ danh sách lệnh (gõ `s!help` để xem lệnh nhạc)'
         )
         .setFooter({
           text: 'Hoangnek Bot • Chúc cộng đồng của bạn phát triển vững mạnh!',

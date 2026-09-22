@@ -1,6 +1,7 @@
 const MusicManager = require('../music/MusicManager');
 const MusicSourceResolver = require('../music/MusicSourceResolver');
 const channelSetupService = require('./channelSetupService');
+const guildSettingsService = require('./guildSettingsService');
 const EmbedBuilderUtility = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
 
@@ -61,7 +62,7 @@ class MusicCommandHandler {
         description:
           '⚠️ **Server chưa thiết lập kênh nào được phép phát nhạc!**\n\n' +
           '> Mặc định toàn bộ các kênh đều bị khóa lệnh nhạc.\n' +
-          '> Quản trị viên vui lòng sử dụng lệnh `/setup channel add` hoặc `s!setup add #kênh` để cấp phép kênh phát nhạc.',
+          '> Quản trị viên vui lòng sử dụng lệnh `/setup channel add` hoặc `!setup channel add #kênh` để cấp phép kênh phát nhạc.',
         success: false,
       });
       message.reply({ embeds: [embed] }).catch(() => {});
@@ -127,6 +128,21 @@ class MusicCommandHandler {
    * @param {import('discord.js').Message} message
    */
   async handleCommand(message) {
+    if (!message || !message.guild) return;
+
+    // Kiểm tra tính năng Phát nhạc có được bật trong Server không
+    if (!guildSettingsService.isFeatureEnabled(message.guild.id, 'music')) {
+      const disabledEmbed = EmbedBuilderUtility.createFeatureToggleResponseEmbed({
+        title: 'Tính Năng Đã Bị Tắt',
+        description:
+          '⚠️ Tính năng **Phát nhạc (Music)** hiện đang bị tắt trong Server này bởi Quản trị viên.\n' +
+          'Quản trị viên có thể bật lại bằng `/setup feature enable feature:music` hoặc `!setup feature enable music`.',
+        enabled: false,
+      });
+      await message.reply({ embeds: [disabledEmbed] }).catch(() => {});
+      return;
+    }
+
     if (!this.validateChannel(message)) return;
 
     const raw = message.content.trim().slice(this.prefix.length);

@@ -155,23 +155,22 @@ Hệ thống Whitelist cho phép Quản trị viên miễn trừ kiểm duyệt 
 ---
 
 ### 💬 2. Sử dụng Cú pháp Chat Prefix nhanh:
-Hệ thống hỗ trợ quản lý nhanh bằng tiền tố `s!setup whitelist` hoặc `!wl`:
+Hệ thống hỗ trợ quản lý nhanh bằng tiền tố `!setup whitelist`:
 - **Thêm đối tượng**:
-  - `!wl add user @user1, @user2` *(Thêm người dùng)*
-  - `!wl add role @Admin, @VIP` *(Thêm vai trò)*
-  - `!wl add channel #spam-box, #test` *(Thêm kênh miễn trừ)*
-  - `s!setup whitelist add role @VIP`
+  - `!setup whitelist add user @user1, @user2` *(Thêm người dùng)*
+  - `!setup whitelist add role @Admin, @VIP` *(Thêm vai trò)*
+  - `!setup whitelist add channel #spam-box, #test` *(Thêm kênh miễn trừ)*
 - **Xóa đối tượng**:
-  - `!wl remove user @user1`
-  - `!wl remove role @VIP`
-  - `!wl remove channel #spam-box`
+  - `!setup whitelist remove user @user1`
+  - `!setup whitelist remove role @VIP`
+  - `!setup whitelist remove channel #spam-box`
 - **Xem danh sách**:
-  - `!wl list` *(Xem toàn bộ User, Role, Kênh)*
-  - `!wl list role` *(Xem riêng Role)*
-  - `!wl list channel` *(Xem riêng Kênh)*
+  - `!setup whitelist list` *(Xem toàn bộ User, Role, Kênh)*
+  - `!setup whitelist list role` *(Xem riêng Role)*
+  - `!setup whitelist list channel` *(Xem riêng Kênh)*
 - **Xóa toàn bộ**:
-  - `!wl clear` *(Dọn sạch toàn bộ danh sách)*
-  - `!wl clear role` *(Chỉ dọn sạch Role)*
+  - `!setup whitelist clear` *(Dọn sạch toàn bộ danh sách)*
+  - `!setup whitelist clear role` *(Chỉ dọn sạch Role)*
 
 ---
 
@@ -199,12 +198,14 @@ Hệ thống cung cấp lệnh `/help` chuyên biệt (hỗ trợ cả Slash Com
 | Lệnh | Phạm vi trợ giúp | Mô tả |
 | :--- | :--- | :--- |
 | `/help feature:all` (hoặc `!help`) | `all` | Tổng quan danh sách tất cả các lệnh và tính năng của Bot |
+| `/help feature:ai` (hoặc `!help ai`) | `ai` | Hướng dẫn sử dụng Trợ lý AI Assistant (`!ask` & `/ask`) |
 | `/help feature:music` (hoặc `s!help`) | `music` | Hướng dẫn chi tiết tất cả các lệnh phát nhạc (`s!play`, `s!skip`, `/music...`) |
-| `/help feature:setup` | `setup` | Hướng dẫn phân quyền kênh, bật/tắt module và quản lý Whitelist qua `/setup` |
-| `/help feature:whitelist` | `whitelist` | Hướng dẫn chi tiết cách thêm, xóa, xem danh sách Whitelist (`/setup whitelist`) |
-| `/help feature:feature` | `feature` | Hướng dẫn bật/tắt module và tra cứu trạng thái (`/setup feature`) |
-| `/help feature:moderation` | `moderation` | Giải thích chi tiết 3 nhãn (`TRONG SẠCH`, `XÚC PHẠM`, `THÙ GHÉT`) và các mức phạt lũy tiến |
-| `/help feature:notifications` | `notifications` | Hướng dẫn cơ chế thông báo Chào mừng & Tạm biệt thành viên |
+| `/help feature:knowledge` (hoặc `!help knowledge`) | `knowledge` | Hướng dẫn nạp tri thức Server từ Kênh ghim, Tin nhắn, Văn bản cho AI RAG |
+| `/help feature:setup` (hoặc `!help setup`) | `setup` | Toàn bộ danh sách lệnh quản trị hệ thống (`/setup` & `!setup`) |
+| `/help feature:whitelist` (hoặc `!help whitelist`) | `whitelist` | Hướng dẫn chi tiết cách thêm, xóa, xem danh sách Whitelist (`/setup whitelist`) |
+| `/help feature:feature` (hoặc `!help feature`) | `feature` | Hướng dẫn bật/tắt module và tra cứu trạng thái (`/setup feature`) |
+| `/help feature:moderation` (hoặc `!help moderation`) | `moderation` | Giải thích chi tiết 3 nhãn (`TRONG SẠCH`, `XÚC PHẠM`, `THÙ GHÉT`) và các mức phạt lũy tiến |
+| `/help feature:notifications` (hoặc `!help notifications`) | `notifications` | Hướng dẫn cơ chế thông báo Chào mừng & Tạm biệt thành viên |
 
 ---
 
@@ -217,16 +218,25 @@ Quản trị viên có thể linh hoạt Bật hoặc Tắt từng tính năng c
 
 | Lệnh Slash | Tham số | Ví dụ thực tế | Mô tả |
 | :--- | :--- | :--- | :--- |
-| `/setup feature enable` | `feature` (moderation/welcome/leave/all) | `/setup feature enable feature:moderation` | Bật một tính năng của bot |
-| `/setup feature disable` | `feature` (moderation/welcome/leave/all) | `/setup feature disable feature:welcome` | Tắt một tính năng của bot |
-| `/setup feature status` | `feature` *(tùy chọn)* | `/setup feature status feature:moderation` | Xem trạng thái BẬT/TẮT của một tính năng hoặc toàn bộ |
+| `/setup feature enable` | `feature` (moderation/welcome/leave/ai/music/all) | `/setup feature enable feature:ai` | Bật một tính năng của bot |
+| `/setup feature disable` | `feature` (moderation/welcome/leave/ai/music/all) | `/setup feature disable feature:music` | Tắt một tính năng của bot |
+| `/setup feature status` | `feature` *(tùy chọn)* | `/setup feature status` | Xem trạng thái BẬT/TẮT của một tính năng hoặc toàn bộ 5 tính năng |
 
 ### 💬 2. Sử dụng Cú pháp Chat Prefix nhanh:
-- `s!setup feature enable moderation` (hoặc `!feature enable moderation`)
-- `s!setup feature disable leave` (hoặc `!feature disable leave`)
-- `s!setup feature status moderation` (hoặc `!feature status`)
+- `!setup feature enable ai`
+- `!setup feature disable music`
+- `!setup feature enable moderation`
+- `!setup feature disable leave`
+- `!setup feature status`
 
-### 💾 3. Lưu trữ cài đặt:
+### 📋 3. Danh sách 5 tính năng quản lý độc lập:
+1. `moderation`: Lọc ngôn từ độc hại & Hate Speech.
+2. `welcome`: Thông báo chào mừng thành viên mới vào server.
+3. `leave`: Thông báo tạm biệt khi thành viên rời server.
+4. `ai`: Trợ lý AI Assistant (`!ask`, `/ask`).
+5. `music`: Hệ thống Phát nhạc (`s!play`, `/music`).
+
+### 💾 4. Lưu trữ cài đặt:
 Trạng thái bật/tắt tính năng được lưu bền vững theo từng Server tại `data/guild_settings.json`. Mặc định tất cả tính năng đều được **BẬT** khi bot mới vào server.
 
 ---
