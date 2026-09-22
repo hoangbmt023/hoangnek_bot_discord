@@ -1,4 +1,4 @@
-﻿const assert = require('assert');
+const assert = require('assert');
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
 const guildSettingsService = require('../src/services/guildSettingsService');
 const memberNotificationService = require('../src/services/memberNotificationService');
@@ -145,10 +145,11 @@ assert(statusSubCmd, 'Subcommand notify status phải tồn tại');
 console.log('✅ [Pass] Schema Slash Command /setup notify (set, reset, status) chuẩn xác 100%.');
 
 // --- 4. Kiểm thử Prefix Command Recognizer ---
-assert.strictEqual(setupCommandHandler.isSetupCommand('s!setup notify welcome #general'), true);
-assert.strictEqual(setupCommandHandler.isSetupCommand('s!setup welcome #chao-mung'), true);
-assert.strictEqual(setupCommandHandler.isSetupCommand('s!setup leave #tam-biet'), true);
-assert.strictEqual(setupCommandHandler.isSetupCommand('s!channel add #music'), true);
-console.log('✅ [Pass] Nhận diện câu lệnh Prefix s!setup notify, s!setup welcome, s!setup leave chính xác.');
+assert.strictEqual(setupCommandHandler.isSetupCommand('!setup notify welcome #general'), true);
+assert.strictEqual(setupCommandHandler.isSetupCommand('!setup welcome #chao-mung'), true);
+assert.strictEqual(setupCommandHandler.isSetupCommand('!setup leave #tam-biet'), true);
+assert.strictEqual(setupCommandHandler.isSetupCommand('!setup channel add #music'), true);
+assert.strictEqual(setupCommandHandler.isSetupCommand('!channel add #music'), false);
+console.log('✅ [Pass] Nhận diện câu lệnh Prefix !setup notify, !setup welcome, !setup channel chính xác.');
 
 console.log('\n🎉 Toàn bộ bài kiểm thử Cấu hình Kênh Thông Báo & Multi-Guild đã THÀNH CÔNG!');

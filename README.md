@@ -5,14 +5,14 @@ Bot Discord được xây dựng bằng **Node.js** và thư viện **discord.js
 ---
 
 - 🤖 **Trợ Lý AI Assistant Thông Minh (Prefix `!ask` & Slash `/ask`)**:
-  - **Tích hợp Google Gemini & Đa Tầng Fallback OpenRouter**: Sử dụng Google Gemini (`gemini-3.6-flash`, `gemini-3.5-flash-lite`, `gemini-1.5-pro`...) làm provider chính, tự động fallback an toàn sang OpenRouter (`openrouter/free`, Llama 3.3 70B, Gemma 3 27B, Qwen 2.5...) khi gặp lỗi 429 Quota Exceeded hoặc sự cố mạng.
-  - **Tavily AI Search RAG Đa Tầng (Cascading Search)**: Tự động tra cứu thông tin thời gian thực từ Internet bằng Tavily Search Platform với cơ chế tự động nâng cấp: `basic` (1 credit) ➔ `advanced` (2 credits) khi cần bổ sung dữ liệu đối chiếu.
-  - **Cơ sở Tri thức Động từ Kênh Tri Thức (/setup knowledge add-channel)**: Tự động đọc và thấu hiểu toàn diện nội quy máy chủ, thông báo và dữ liệu ghim (Pinned Messages & Embeds) từ các kênh tri thức do Admin chỉ định theo thời gian thực.
-  - **Tùy biến Model AI theo từng Server (/setup ai & s!setup ai)**: Quản trị viên có thể tự do đổi model Gemini, OpenRouter hoặc chọn Provider chính cho riêng Server của mình qua lệnh `/setup ai set-model` hoặc `s!setup ai set <provider> <model>`.
+  - **Tích hợp Google Gemini & Đa Tầng Fallback OpenRouter**: Sử dụng Google Gemini (`gemini-3.6-flash`, `gemini-3.5-flash-lite`...) làm provider chính với `maxOutputTokens: 2048`, tự động fallback an toàn sang OpenRouter (`openrouter/free`, `nex-agi/nex-n2.5-mini:free`, `liquid/lfm-2.5-2.6b:free`...) khi gặp lỗi 429 Quota Exceeded hoặc sự cố mạng.
+  - **Tavily AI Search RAG Đa Tầng (Cascading Search)**: Tự động tra cứu thông tin thời gian thực từ Internet bằng Tavily Search Platform với cơ chế tự động nâng cấp: `basic` ➔ `advanced` khi cần bổ sung dữ liệu đối chiếu, kèm bộ nhớ đệm Cache 15 phút.
+  - **Cơ sở Tri thức Động từ Discord (/setup knowledge)**: Tự động đọc và thấu hiểu toàn diện nội quy máy chủ, thông báo và dữ liệu ghim (Pinned Messages & Embeds), tin nhắn chỉ định và văn bản tùy chỉnh, kèm RAM Cache (TTL 3 phút, phản hồi 0ms).
+  - **Tùy biến Model AI theo từng Server (/setup ai & !setup ai)**: Quản trị viên có thể tự do đổi model Gemini, OpenRouter hoặc chọn Provider chính cho riêng Server của mình qua lệnh `/setup ai set-model` hoặc `!setup ai set <provider> <model>`.
   - **Bộ nhớ hội thoại ngắn hạn (Short-term Context Memory)**: Lưu trữ lịch sử hỏi đáp gần nhất, phân tách độc lập theo từng Server/User, tự động giải phóng bộ nhớ sau 15 phút.
   - **Chống spam (Rate Limit)**: Tự động giới hạn 1 request / 5 giây mỗi user.
 
-- 🎵 **Hệ thống Phát Nhạc Cao Cấp (Prefix `s!` & Slash `/music`)**:
+- 🎵 **Hệ thống Phát Nhạc Cao Cấp (Duy nhất tiền tố `s!` & Slash `/music`)**:
   - **YouTube (`yt-dlp + FFmpeg Native OggOpus`)**: Phát trực tiếp video, playlist hoặc tìm kiếm từ khóa với âm thanh chuẩn Native OggOpus (48kHz Stereo, 128kbps), giải mã đa luồng bằng FFmpeg C Native, loại bỏ hoàn toàn rè tiếng (crackling), giật lag (jitter) và 403 Forbidden.
   - **Spotify (Hybrid Album Resolver & RAM Cache 0ms)**:
     - **In-Memory LRU Cache:** Lưu trữ 1,000 bài hát gần nhất trong RAM (TTL 2 giờ, tiêu thụ chỉ ~1MB RAM), phản hồi ngay lập tức trong 0ms khi phát lại/lặp bài.
@@ -23,14 +23,14 @@ Bot Discord được xây dựng bằng **Node.js** và thư viện **discord.js
   - **Từ chối link không hợp lệ**: Tự động chặn các URL không được hỗ trợ (SoundCloud, Facebook, TikTok...) để bảo đảm an toàn.
   - **Đầy đủ tính năng điều khiển**: `s!play` (`s!p`), `s!pause`, `s!resume`, `s!skip`, `s!stop`, `s!queue`, `s!np`, `s!volume`, `s!loop`, `s!shuffle`, `s!remove`, `s!clear`, `s!leave`.
   - **Tự động rời phòng (Auto Leave)**: Tự động ngắt kết nối sau 3 phút không hoạt động hoặc khi phòng voice trống để tối ưu tài nguyên.
-- 🔒 **Phân Quyền Kênh Lệnh (/setup & s!setup)**:
+- 🔒 **Phân Quyền Kênh Lệnh (/setup & !setup)**:
   - Mặc định khóa lệnh ở tất cả các kênh để chống spam chat.
-  - Quản trị viên chỉ định các kênh văn bản được phép dùng lệnh qua `/setup channel add` hoặc `s!setup channel add`.
+  - Quản trị viên chỉ định các kênh văn bản được phép dùng lệnh qua `/setup channel add` hoặc `!setup channel add`.
 - 🌟 **Thông báo Chào mừng & Tạm biệt Động (Multi-Guild Welcome & Leave)**:
   - Bắt sự kiện `guildMemberAdd` / `guildMemberRemove` và gửi Embed Card đẹp mắt.
   - **Mặc định**: Tự động gửi vào **Kênh hệ thống (System Channel)** của Server.
-  - **Tùy chỉnh riêng cho từng Server**: Cài đặt qua lệnh `/setup notify set` hoặc `s!setup notify <welcome|leave> #kênh` (hoặc `s!setup welcome #kênh`, `s!setup leave #kênh`), không phụ thuộc file `.env`.
-  - Khôi phục mặc định dễ dàng bằng `/setup notify reset` hoặc `s!setup notify reset`.
+  - **Tùy chỉnh riêng cho từng Server**: Cài đặt qua lệnh `/setup notify set` hoặc `!setup notify <welcome|leave> #kênh` (hoặc `!setup welcome #kênh`, `!setup leave #kênh`), không phụ thuộc file `.env`.
+  - Khôi phục mặc định dễ dàng bằng `/setup notify reset` hoặc `!setup notify reset`.
 - 🌐 **Hỗ Trợ Đa Server Toàn Diện (Multi-Guild)**:
   - Tự động bắt sự kiện `guildCreate` khi được mời vào server mới và gửi hướng dẫn thiết lập nhanh.
   - Tự động đăng ký Slash Commands toàn cục (Global) cho mọi Server bot tham gia.
@@ -80,7 +80,7 @@ hoangnek_bot_discord/
 │   └── MODERATION_GUIDE.md   # Hướng dẫn chi tiết hệ thống Lọc ngôn từ & Hate Speech
 ├── src/
 │   ├── commands/
-│   │   └── slashCommands.js  # Cấu hình & Đăng ký Slash Command (/ask, /wl, /feature, /setup, /music, /help)
+│   │   └── slashCommands.js  # Cấu hình & Đăng ký Slash Command (/ask, /setup, /music, /help)
 │   ├── config/
 │   │   ├── env.js            # Nạp và kiểm tra tính hợp lệ của biến môi trường (AI & Bot)
 │   │   └── moderation.js     # Cấu hình ngưỡng phạt và nhãn phân loại tiếng Việt
@@ -95,8 +95,8 @@ hoangnek_bot_discord/
 │   │       ├── guildCreate.js       # Sự kiện khi Bot được thêm vào server mới
 │   │       ├── guildMemberAdd.js    # Sự kiện thành viên vào server
 │   │       ├── guildMemberRemove.js # Sự kiện thành viên rời server
-│   │       ├── interactionCreate.js # Xử lý Slash Command (/ask, /setup, /music, /wl, /feature, /help)
-│   │       └── messageCreate.js     # Xử lý tin nhắn, !ask, s! music, s!setup và kiểm duyệt
+│   │       ├── interactionCreate.js # Xử lý Slash Command (/ask, /setup, /music, /help)
+│   │       └── messageCreate.js     # Xử lý tin nhắn, !ask, s! music, !setup và kiểm duyệt
 │   ├── music/
 │   │   ├── Track.js                 # Đại diện bài hát & nạp Audio Resource
 │   │   ├── YtDlpService.js          # Dịch vụ yt-dlp & FFmpeg stream PCM chất lượng cao
@@ -113,9 +113,9 @@ hoangnek_bot_discord/
 │   │   │   ├── serverContextService.js   # Trích xuất ngữ cảnh server thời gian thực
 │   │   │   ├── promptService.js          # Xây dựng System Prompt & User Prompt
 │   │   │   └── memoryService.js          # Bộ nhớ hội thoại ngắn hạn theo Guild/User
-│   │   ├── askCommandHandler.js     # Xử lý lệnh hỏi đáp !ask / /ask / !hoi
+│   │   ├── askCommandHandler.js     # Xử lý lệnh hỏi đáp !ask / /ask
 │   │   ├── channelSetupService.js   # Quản lý cấu hình phân quyền kênh
-│   │   ├── setupCommandHandler.js   # Xử lý lệnh cấu hình (/setup & s!setup)
+│   │   ├── setupCommandHandler.js   # Xử lý lệnh cấu hình (/setup & !setup)
 │   │   ├── musicCommandHandler.js   # Xử lý toàn bộ lệnh phát nhạc prefix s!
 │   │   ├── musicButtonHandler.js    # Xử lý tương tác nút bấm Player & phân trang Hàng đợi
 │   │   ├── memberNotificationService.js # Business logic gửi thông báo thành viên

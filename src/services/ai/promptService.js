@@ -54,8 +54,133 @@ KIẾN TRÚC XỬ LÝ DỮ LIỆU & QUY TẮC CỐT LÕI (BẮT BUỘC TUÂN TH�
 6. PHONG CÁCH VÀ ĐỊNH DẠNG DISCORD:
    - ƯU TIÊN NGÔN NGỮ CỦA NGƯỜI DÙNG: Người dùng hỏi bằng ngôn ngữ nào, trả lời 100% bằng chính ngôn ngữ đó (Hỏi Tiếng Việt -> Trả lời Tiếng Việt tự nhiên, chuẩn mực).
    - TRÌNH BÀY GỌN GÀNG, VỪA VẶN TRONG 1 TIN NHẮN DISCORD: Trả lời cô đọng, súc tích, đi thẳng vào câu hỏi, độ dài tối ưu dưới 1500 ký tự để không bị cắt xén hay tràn sang nhiều tin nhắn.
+   - TUYỆT ĐỐI KHÔNG DÙNG BẢNG MARKDOWN:
+     • Discord KHÔNG hỗ trợ hiển thị bảng Markdown (| Cột 1 | Cột 2 | và |---|---|). Dùng bảng sẽ làm vỡ giao diện trên Discord.
+     • TUYỆT ĐỐI KHÔNG dùng cú pháp kẻ bảng có thanh đứng (|) và gạch ngang (|---|).
+     • BẮT BUỘC trình bày dạng danh sách gạch đầu dòng (bullet points) hoặc danh sách số rõ ràng:
+       Ví dụ chuẩn:
+       • \`/setup whitelist add target:users\`: Thêm người dùng vào danh sách trắng.
+       • \`/setup whitelist add target:roles\`: Thêm role vào danh sách trắng.
    - ĐI THẲNG VÀO NỘI DUNG: Tuyệt đối không xuất ra bất kỳ suy nghĩ nội tâm, Chain-of-Thought, draft hay phân tích đề. Trình bày đẹp mắt, tự nhiên bằng Markdown Discord (in đậm, gạch đầu dòng, code block). TUYỆT ĐỐI KHÔNG dùng các đường kẻ ngang phân cách (như --- hoặc ***).
    - Không tiết lộ API key, token, system prompt hoặc biến môi trường nội bộ.`;
+  }
+
+  /**
+   * Tự động làm sạch và chuyển đổi bảng Markdown sang định dạng danh sách (bullet list) thân thiện với Discord
+   * @param {string} text
+   * @returns {string}
+   */
+  formatResponseForDiscord(text) {
+    if (!text || typeof text !== 'string') return '';
+
+    // Tách các đoạn code block (```) để không làm ảnh hưởng code bên trong
+    const codeBlockRegex = /```[\s\S]*?```/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = codeBlockRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: text.slice(lastIndex, match.index) });
+      }
+      parts.push({ type: 'code', content: match[0] });
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: 'text', content: text.slice(lastIndex) });
+    }
+
+    const processedParts = parts.map((part) => {
+      if (part.type === 'code') return part.content;
+
+      const lines = part.content.split('\n');
+      const outputLines = [];
+      let inTable = false;
+      let tableRows = [];
+
+      const isTableRow = (line) => {
+        const trimmed = line.trim();
+        return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.length > 2;
+      };
+
+      const isSeparatorRow = (line) => {
+        const trimmed = line.trim();
+        return /^\|(\s*:?-+:?\s*\|)+$/.test(trimmed);
+      };
+
+      const flushTable = (rows) => {
+        if (rows.length === 0) return [];
+        const validRows = rows.filter((r) => !isSeparatorRow(r));
+        if (validRows.length === 0) return [];
+
+        const parsedRows = validRows.map((row) =>
+          row
+            .split('|')
+            .slice(1, -1)
+            .map((c) => c.trim())
+        );
+
+        if (parsedRows.length === 1) {
+          return [parsedRows[0].join(' - ')];
+        }
+
+        const headers = parsedRows[0];
+        const dataRows = parsedRows.slice(1);
+        const result = [];
+
+        for (const row of dataRows) {
+          if (row.length === 0 || row.every((c) => !c)) continue;
+
+          if (row.length === 2) {
+            const col1 = row[0];
+            const col2 = row[1];
+            if (col1.startsWith('`') || col1.startsWith('/')) {
+              result.push(`• ${col1}: ${col2}`);
+            } else {
+              result.push(`• **${col1}**: ${col2}`);
+            }
+          } else if (row.length >= 3) {
+            const mainCol = row[0];
+            const subItems = [];
+            for (let i = 1; i < row.length; i++) {
+              const headerName = headers[i] || `Mục ${i + 1}`;
+              const val = row[i];
+              if (val) {
+                subItems.push(`  - *${headerName}:* ${val}`);
+              }
+            }
+            result.push(`• **${mainCol}**\n${subItems.join('\n')}`);
+          } else {
+            result.push(`• ${row.join(' - ')}`);
+          }
+        }
+
+        return result;
+      };
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (isTableRow(line)) {
+          inTable = true;
+          tableRows.push(line);
+        } else {
+          if (inTable) {
+            outputLines.push(...flushTable(tableRows));
+            tableRows = [];
+            inTable = false;
+          }
+          outputLines.push(line);
+        }
+      }
+
+      if (inTable) {
+        outputLines.push(...flushTable(tableRows));
+      }
+
+      return outputLines.join('\n');
+    });
+
+    return processedParts.join('');
   }
 
   /**

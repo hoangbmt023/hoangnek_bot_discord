@@ -499,6 +499,10 @@ class GuildSettingsService {
     if (!alreadyExists) {
       guildConfig.knowledge.channelIds.push(channelId);
       this.saveToDisk();
+      try {
+        const serverKnowledgeService = require('./ai/serverKnowledgeService');
+        serverKnowledgeService.invalidateCache(guildId);
+      } catch {}
       logger.info(`[Settings] Guild ${guildId}: Đã thêm Kênh Tri Thức AI -> "${channelId}"`);
     }
     return { success: true, channelId, channelIds: guildConfig.knowledge.channelIds, alreadyExists };
@@ -521,6 +525,10 @@ class GuildSettingsService {
     const notFound = guildConfig.knowledge.channelIds.length === before;
     if (!notFound) {
       this.saveToDisk();
+      try {
+        const serverKnowledgeService = require('./ai/serverKnowledgeService');
+        serverKnowledgeService.invalidateCache(guildId);
+      } catch {}
       logger.info(`[Settings] Guild ${guildId}: Đã xóa Kênh Tri Thức AI -> "${channelId}"`);
     }
     return { success: true, channelId, channelIds: guildConfig.knowledge.channelIds, notFound };
@@ -549,6 +557,10 @@ class GuildSettingsService {
     if (!alreadyExists) {
       guildConfig.knowledge.messages.push({ channelId, messageId });
       this.saveToDisk();
+      try {
+        const serverKnowledgeService = require('./ai/serverKnowledgeService');
+        serverKnowledgeService.invalidateCache(guildId);
+      } catch {}
       logger.info(
         `[Settings] Guild ${guildId}: Đã thêm Tin Nhắn Tri Thức AI -> Kênh ${channelId}, Message ${messageId} (Tổng: ${guildConfig.knowledge.messages.length} tin)`
       );
@@ -581,6 +593,10 @@ class GuildSettingsService {
 
     if (!notFound) {
       this.saveToDisk();
+      try {
+        const serverKnowledgeService = require('./ai/serverKnowledgeService');
+        serverKnowledgeService.invalidateCache(guildId);
+      } catch {}
       logger.info(`[Settings] Guild ${guildId}: Đã xóa Tin Nhắn Tri Thức AI ID "${messageId}"`);
     }
 
@@ -624,6 +640,10 @@ class GuildSettingsService {
 
     guildConfig.knowledge.customTexts.push(cleanText);
     this.saveToDisk();
+    try {
+      const serverKnowledgeService = require('./ai/serverKnowledgeService');
+      serverKnowledgeService.invalidateCache(guildId);
+    } catch {}
     logger.info(
       `[Settings] Guild ${guildId}: Đã thêm Văn Bản Tri Thức AI (${cleanText.length} ký tự, Tổng: ${guildConfig.knowledge.customTexts.length} đoạn)`
     );
@@ -671,6 +691,10 @@ class GuildSettingsService {
 
     if (!notFound) {
       this.saveToDisk();
+      try {
+        const serverKnowledgeService = require('./ai/serverKnowledgeService');
+        serverKnowledgeService.invalidateCache(guildId);
+      } catch {}
       logger.info(`[Settings] Guild ${guildId}: Đã xóa Văn Bản Tri Thức AI (Còn lại: ${guildConfig.knowledge.customTexts.length} đoạn)`);
     }
 
@@ -700,6 +724,10 @@ class GuildSettingsService {
       guildConfig.knowledge.customTexts = [customText.trim()];
     }
     this.saveToDisk();
+    try {
+      const serverKnowledgeService = require('./ai/serverKnowledgeService');
+      serverKnowledgeService.invalidateCache(guildId);
+    } catch {}
     logger.info(
       `[Settings] Guild ${guildId}: Đã cập nhật Văn Bản Tri Thức AI (${customText ? customText.length : 0} ký tự)`
     );
@@ -720,6 +748,10 @@ class GuildSettingsService {
     const guildConfig = this.getGuildConfig(guildId);
     guildConfig.knowledge = { channelIds: [], messages: [], customTexts: [] };
     this.saveToDisk();
+    try {
+      const serverKnowledgeService = require('./ai/serverKnowledgeService');
+      serverKnowledgeService.invalidateCache(guildId);
+    } catch {}
     logger.info(`[Settings] Guild ${guildId}: Đã đặt lại cấu hình Tri Thức AI về mặc định.`);
     return { success: true };
   }

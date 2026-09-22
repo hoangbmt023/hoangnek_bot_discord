@@ -1,6 +1,6 @@
 # 🎵 Hướng Dẫn Hệ Thống Phát Nhạc Discord (Music System Guide)
 
-Tài liệu hướng dẫn chi tiết về cấu trúc, cơ chế hoạt động, giải quyết nguồn phát âm thanh (Music Source Resolver), cấu hình kênh cho phép (`/setup` & `s!setup`) và danh sách các câu lệnh điều khiển phát nhạc (`s!`).
+Tài liệu hướng dẫn chi tiết về cấu trúc, cơ chế hoạt động, giải quyết nguồn phát âm thanh (Music Source Resolver), cấu hình kênh cho phép (`/setup` & `!setup`) và danh sách các câu lệnh điều khiển phát nhạc (`s!`).
 
 ---
 
@@ -86,19 +86,19 @@ Hệ thống hỗ trợ các nền tảng sau theo đúng chuẩn xử lý âm t
 
 ---
 
-## 🛡️ 3. Phân Quyền Kênh Phát Nhạc (`/setup channel` & `s!setup channel`)
+## 🛡️ 3. Phân Quyền Kênh Phát Nhạc (`/setup channel` & `!setup channel`)
 
 > [!IMPORTANT]
 > **Chính sách an toàn mặc định:** Nhằm tránh việc người dùng spam lệnh nhạc làm loãng các kênh chat chính, **mặc định bot sẽ khóa lệnh phát nhạc ở tất cả các kênh** cho đến khi Quản trị viên chỉ định các kênh được phép.
 
-Quản trị viên sử dụng lệnh `/setup channel` (hoặc `s!setup channel`) để quản lý danh sách kênh phát nhạc:
+Quản trị viên sử dụng lệnh `/setup channel` (hoặc `!setup channel`) để quản lý danh sách kênh phát nhạc:
 
 | Lệnh Slash | Lệnh Prefix | Mô Tả |
 | :--- | :--- | :--- |
-| `/setup channel add channel:#music` | `s!setup channel add #music` | Cấp phép cho kênh được sử dụng lệnh Bot & Phát nhạc |
-| `/setup channel remove channel:#music` | `s!setup channel remove #music` | Xóa quyền sử dụng lệnh nhạc tại kênh chỉ định |
-| `/setup channel list` | `s!setup channel list` | Hiển thị danh sách các kênh đang được cấp phép |
-| `/setup channel clear` | `s!setup channel clear` | Xóa toàn bộ phân quyền kênh (khóa lệnh toàn Server) |
+| `/setup channel add channel:#music` | `!setup channel add #music` | Cấp phép cho kênh được sử dụng lệnh Bot & Phát nhạc |
+| `/setup channel remove channel:#music` | `!setup channel remove #music` | Xóa quyền sử dụng lệnh nhạc tại kênh chỉ định |
+| `/setup channel list` | `!setup channel list` | Hiển thị danh sách các kênh đang được cấp phép |
+| `/setup channel clear` | `!setup channel clear` | Xóa toàn bộ phân quyền kênh (khóa lệnh toàn Server) |
 
 > 💡 **Xem thêm tài liệu liên quan**:
 > - Xem chi tiết phân quyền hệ thống tại [docs/PERMISSIONS_GUIDE.md](PERMISSIONS_GUIDE.md).

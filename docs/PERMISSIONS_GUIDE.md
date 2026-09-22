@@ -13,15 +13,15 @@ Hệ thống phân quyền được xây dựng theo mô hình bảo mật 3 l�
 
 | Nhóm Tính Năng | Câu Lệnh Đại Diện | Quyền Hạn Yêu Cầu (Member) | Điều Kiện Ngữ Cảnh (Context) | Đối Tượng Sử Dụng |
 | :--- | :--- | :--- | :--- | :---: |
-| **Cấu hình AI Model** | `/setup ai <set-model \| set-primary \| reset-model \| status>`<br>`s!setup ai <set \| primary \| reset \| status>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
-| **Cấu hình Kênh Tri Thức AI** | `/setup knowledge <add-channel \| remove-channel \| add-message \| remove-message \| add-text \| remove-text \| reset \| status>`<br>`s!setup knowledge <add-channel \| ...>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
-| **Cấu hình Kênh Thông Báo** | `/setup notify <set \| reset \| status>`<br>`s!setup notify <welcome \| leave \| all>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
-| **Cấu hình Kênh Lệnh** | `/setup channel <action>`<br>`s!setup channel <action>` | `Administrator` hoặc `ManageGuild` hoặc `ManageChannels` | Phải thực hiện trong Server (Không hỗ trợ DM) | **Quản trị viên** |
-| **Bật/Tắt Tính Năng** | `/setup feature <action>`<br>`s!setup feature <action>`<br>`!feature <action>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
-| **Quản Lý Whitelist** | `/setup whitelist <action>`<br>`s!setup whitelist <action>`<br>`!wl <action>` | `Administrator` hoặc `ManageGuild` hoặc `ManageMessages` | Phải thực hiện trong Server | **Quản trị viên / Quản lý** |
+| **Cấu hình AI Model** | `/setup ai <set-model \| set-primary \| reset-model \| status>`<br>`!setup ai <set \| primary \| reset \| status>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
+| **Cấu hình Kênh Tri Thức AI** | `/setup knowledge <add-channel \| remove-channel \| add-message \| remove-message \| add-text \| remove-text \| reset \| status>`<br>`!setup knowledge <add-channel \| ...>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
+| **Cấu hình Kênh Thông Báo** | `/setup notify <set \| reset \| status>`<br>`!setup notify <welcome \| leave \| all>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
+| **Cấu hình Kênh Lệnh** | `/setup channel <action>`<br>`!setup channel <action>` | `Administrator` hoặc `ManageGuild` hoặc `ManageChannels` | Phải thực hiện trong Server (Không hỗ trợ DM) | **Quản trị viên** |
+| **Bật/Tắt Tính Năng** | `/setup feature <action>`<br>`!setup feature <action>` | `Administrator` hoặc `ManageGuild` | Phải thực hiện trong Server | **Quản trị viên** |
+| **Quản Lý Whitelist** | `/setup whitelist <action>`<br>`!setup whitelist <action>` | `Administrator` hoặc `ManageGuild` hoặc `ManageMessages` | Phải thực hiện trong Server | **Quản trị viên / Quản lý** |
 | **Trợ Lý AI Assistant** | `/ask <câu hỏi>`<br>`!ask <câu hỏi>` | `@everyone` (Tất cả thành viên) | Rate Limit: 1 request / 5 giây / user | **Tất cả thành viên** |
 | **Hệ Thống Phát Nhạc** | `/music <subcommand>`<br>`s!play`, `s!skip`, `s!queue`... | `@everyone` (Tất cả thành viên) | • Người dùng phải ở trong Voice Channel<br>• Cùng Voice Channel với Bot<br>• Chat ở Kênh được cấp phép | **Tất cả thành viên** |
-| **Trợ Giúp (Help)** | `/help [feature]`<br>`!help`, `s!help` | `@everyone` (Tất cả thành viên) | Không yêu cầu điều kiện | **Tất cả thành viên** |
+| **Trợ Giúp (Help)** | `/help [feature]`<br>`!help`, `s!help` (xem nhạc) | `@everyone` (Tất cả thành viên) | Không yêu cầu điều kiện | **Tất cả thành viên** |
 | **Kiểm Duyệt Tự Động** | *Tự động quét tin nhắn* | *Áp dụng cho thành viên thường* | Bỏ qua Quản trị viên, Bot, và Whitelist (User, Role, Kênh) | **Hệ thống Bot** |
 
 ---
@@ -146,7 +146,7 @@ flowchart TD
 
 ### A. Privileged Gateway Intents (Bắt buộc bật trên Developer Portal):
 1. **`MESSAGE CONTENT INTENT`**:
-   - **Mục đích**: Cho phép Bot đọc nội dung tin nhắn văn bản để phân tích ngôn từ độc hại và nhận diện lệnh prefix (`s!play`, `!wl`, `!feature`, `!help`).
+   - **Mục đích**: Cho phép Bot đọc nội dung tin nhắn văn bản để phân tích ngôn từ độc hại và nhận diện lệnh prefix (`s!play`, `!setup`, `!ask`, `!help`).
 2. **`SERVER MEMBERS INTENT`**:
    - **Mục đích**: Cho phép Bot nhận diện sự kiện thành viên tham gia (`guildMemberAdd`) / rời server (`guildMemberRemove`), lấy danh sách Role của thành viên để kiểm tra Whitelist và xử phạt (Timeout / Kick / Ban).
 

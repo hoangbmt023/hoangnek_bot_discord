@@ -62,7 +62,7 @@ class MusicCommandHandler {
         description:
           '⚠️ **Server chưa thiết lập kênh nào được phép phát nhạc!**\n\n' +
           '> Mặc định toàn bộ các kênh đều bị khóa lệnh nhạc.\n' +
-          '> Quản trị viên vui lòng sử dụng lệnh `/setup channel add` hoặc `s!setup add #kênh` để cấp phép kênh phát nhạc.',
+          '> Quản trị viên vui lòng sử dụng lệnh `/setup channel add` hoặc `!setup channel add #kênh` để cấp phép kênh phát nhạc.',
         success: false,
       });
       message.reply({ embeds: [embed] }).catch(() => {});
@@ -136,7 +136,7 @@ class MusicCommandHandler {
         title: 'Tính Năng Đã Bị Tắt',
         description:
           '⚠️ Tính năng **Phát nhạc (Music)** hiện đang bị tắt trong Server này bởi Quản trị viên.\n' +
-          'Quản trị viên có thể bật lại bằng `/setup feature enable feature:music` hoặc `s!setup feature enable music`.',
+          'Quản trị viên có thể bật lại bằng `/setup feature enable feature:music` hoặc `!setup feature enable music`.',
         enabled: false,
       });
       await message.reply({ embeds: [disabledEmbed] }).catch(() => {});

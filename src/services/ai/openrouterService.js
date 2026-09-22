@@ -34,10 +34,10 @@ class OpenRouterService {
 
     // Danh sách model dự phòng nếu model chính của OpenRouter gặp sự cố hoặc trả về chuỗi rỗng/tool-call
     const candidateModels = [primaryModel];
-    if (primaryModel === 'openrouter/free') {
-      candidateModels.push('meta-llama/llama-3.3-70b-instruct:free');
-      candidateModels.push('google/gemma-3-27b-it:free');
-      candidateModels.push('qwen/qwen-2.5-72b-instruct:free');
+    if (primaryModel === 'openrouter/free' || primaryModel === 'auto') {
+      candidateModels.push('nex-agi/nex-n2.5-mini:free');
+      candidateModels.push('nex-agi/nex-n2.5-pro:free');
+      candidateModels.push('nvidia/nemotron-3.5-lightning:free');
     }
 
     const messages = [];
@@ -84,7 +84,7 @@ class OpenRouterService {
             model: targetModel,
             messages,
             temperature: 0.1,
-            max_tokens: 3072,
+            max_tokens: 2048,
           }),
           signal: controller.signal,
         });
@@ -111,12 +111,12 @@ class OpenRouterService {
         const data = await response.json();
         const choice = data.choices?.[0];
 
-        if (!choice || !choice.message?.content) {
+        if (!choice || (!choice.message?.content && !choice.message?.reasoning)) {
           lastError = new Error(`OpenRouter (${targetModel}) không trả về message content.`);
           continue;
         }
 
-        const rawContent = choice.message.content || '';
+        const rawContent = choice.message?.content || choice.message?.reasoning || '';
         const cleanedText = this.cleanResponseText(rawContent);
 
         if (!cleanedText || cleanedText.length < 5 || /^(?:User Safety|Response Safety|Safety Categories):/i.test(cleanedText)) {
@@ -170,10 +170,10 @@ class OpenRouterService {
     text = text.replace(/^(?:User Safety|Response Safety|Safety Categories|Safety Evaluation|Safety Assessment):[^\n]*\n?/gim, '');
 
     // 4. Loại bỏ các đoạn văn suy nghĩ Chain-of-thought ở đầu nếu model leak ra text thuần
-    if (/^(?:Here(?:'s| is) a thinking process|Thinking Process|Let's think step by step|Analyze User Input|Phân tích câu hỏi:)/i.test(text)) {
+    if (/^(?:The user is asking|The user wants|Here(?:'s| is) a thinking process|Thinking Process|Let's think step by step|Analyze User Input|Phân tích câu hỏi:|Let me analyze|Let me think|I need to analyze|From the search results)/i.test(text)) {
       const markers = [
         /(?:Let's draft:?|Draft:?|Response:?|Final Answer:?|Phản hồi:?|Câu trả lời:?)\s*\n*/i,
-        /\n\n(?=(?:Dựa trên|Theo thông tin|Chào bạn|Xin chào|Để |Bạn có thể|Lệnh |Hiện tại|Đối với|Trong server|[#*•-]))/i,
+        /\n\n(?=(?:•|\*|Dựa trên|Theo thông tin|Chào bạn|Xin chào|Để |Bạn có thể|Lệnh |Hiện tại|Đối với|Trong server|Tuyển thủ|Himass))/i,
       ];
 
       for (const marker of markers) {
@@ -181,12 +181,17 @@ class OpenRouterService {
         if (match !== -1) {
           const cutIndex = text.indexOf('\n', match) !== -1 ? text.indexOf('\n', match) : match;
           const candidate = text.slice(cutIndex).trim();
-          if (candidate.length > 20) {
+          if (candidate.length > 20 && !/^(?:The user is asking|Let me analyze|I should)/i.test(candidate)) {
             text = candidate;
             break;
           }
         }
       }
+    }
+
+    // Nếu toàn bộ văn bản chỉ là thinking scratchpad bằng tiếng Anh mà không có câu trả lời cuối cùng
+    if (/^(?:The user is asking|Let me analyze|I need to determine|Wait, there's a discrepancy)/i.test(text) && !/(?:Xin chào|Chào bạn|Tuyển thủ|Dựa trên|Theo|Hiện tại|•)/i.test(text)) {
+      return '';
     }
 
     // 5. Loại bỏ các đường kẻ ngang markdown phân cách (---, ***, ___)
