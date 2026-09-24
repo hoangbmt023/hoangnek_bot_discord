@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
 const BaseEvent = require('../BaseEvent');
-const MusicManager = require('../../music/MusicManager');
+const MusicManager = require('../../services/music/MusicManager');
 const EmbedBuilderUtility = require('../../utils/embedBuilder');
 const logger = require('../../utils/logger');
 

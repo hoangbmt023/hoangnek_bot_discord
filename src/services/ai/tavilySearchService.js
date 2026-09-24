@@ -294,6 +294,21 @@ class TavilySearchService {
   }
 
   /**
+   * Làm sạch các trích dẫn thô dạng [1], [2], (nguồn 1, 2) khỏi văn bản trích xuất
+   * @param {string} text
+   * @returns {string}
+   */
+  cleanCitations(text) {
+    if (!text || typeof text !== 'string') return '';
+    return text
+      .replace(/\s*\(nguồn\s*\d+(?:\s*,\s*\d+)*\)/gi, '')
+      .replace(/\s*\[nguồn\s*\d+(?:\s*,\s*\d+)*\]/gi, '')
+      .replace(/\s*\[\d+(?:\s*,\s*\d+)*\]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  /**
    * Định dạng kết quả từ Tavily thành văn bản Grounding RAG chuẩn mực cho LLM (Gemini / OpenRouter)
    * @param {object|Array} searchData
    * @returns {string}
@@ -318,21 +333,24 @@ class TavilySearchService {
     text += `(Dữ liệu thời gian thực được trích xuất và thẩm định từ các nguồn tin cậy trên Internet)\n\n`;
 
     if (answer) {
-      text += `[TỔNG HỢP TRỰC TIẾP TỪ TAVILY SEARCH]:\n${answer}\n\n`;
+      const sanitizedAnswer = this.cleanCitations(answer);
+      if (sanitizedAnswer) {
+        text += `[TỔNG HỢP NỘI DUNG TÌM KIẾM]:\n${sanitizedAnswer}\n\n`;
+      }
     }
 
     if (results.length > 0) {
-      text += `[CÁC NGUỒN DỮ LIỆU ĐỐI CHIẾU]:\n`;
+      text += `[CHI TIẾT CÁC TÀI LIỆU THAM KHẢO]:\n`;
       results.forEach((item, index) => {
         const scoreStr = item.score ? ` | Độ tương thích: ${item.score}%` : '';
         const dateStr = item.publishedDate ? ` | Ngày xuất bản: ${item.publishedDate}` : '';
-        text += `[NGUỒN ${index + 1}]${scoreStr}${dateStr}\n`;
+        text += `[Tài liệu ${index + 1}]${scoreStr}${dateStr}\n`;
         text += `Tiêu đề: ${item.title || 'Không có tiêu đề'}\n`;
         text += `URL: ${item.url || 'N/A'}\n`;
 
-        const content = item.content || item.snippet || '';
+        const content = this.cleanCitations(item.content || item.snippet || '');
         if (content) {
-          text += `Nội dung trích xuất: ${content}\n`;
+          text += `Nội dung: ${content}\n`;
         }
         text += `\n`;
       });

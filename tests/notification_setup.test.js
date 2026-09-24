@@ -1,8 +1,8 @@
 const assert = require('assert');
 const { ChannelType, PermissionFlagsBits } = require('discord.js');
-const guildSettingsService = require('../src/services/guildSettingsService');
-const memberNotificationService = require('../src/services/memberNotificationService');
-const setupCommandHandler = require('../src/services/setupCommandHandler');
+const guildSettingsService = require('../src/services/settings/guildSettingsService');
+const memberNotificationService = require('../src/services/notifications/memberNotificationService');
+const setupCommandHandler = require('../src/services/settings/setupCommandHandler');
 const { getSlashCommandsData } = require('../src/commands/slashCommands');
 
 console.log('🧪 Bắt đầu kiểm thử Cấu hình Kênh Thông Báo Vào/Ra (Welcome/Leave) & Multi-Guild...');

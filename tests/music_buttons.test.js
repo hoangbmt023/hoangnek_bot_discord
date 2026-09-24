@@ -1,8 +1,8 @@
 const assert = require('assert');
 const EmbedBuilderUtility = require('../src/utils/embedBuilder');
-const musicButtonHandler = require('../src/services/musicButtonHandler');
-const MusicManager = require('../src/music/MusicManager');
-const Track = require('../src/music/Track');
+const musicButtonHandler = require('../src/services/music/musicButtonHandler');
+const MusicManager = require('../src/services/music/MusicManager');
+const Track = require('../src/services/music/Track');
 
 console.log('🧪 Bắt đầu kiểm thử Nút điều khiển âm nhạc & Phân trang tương tác...');
 
