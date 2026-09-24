@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --env-file=.env.development src/index.js",
-    "test": "node tests/check_syntax.js && node tests/moderation.test.js && node tests/ai.test.js && node tests/music_buttons.test.js && node tests/music_setup.test.js && node tests/notification_setup.test.js"
+    "test": "node tests/check_syntax.test.js && node tests/moderation.test.js && node tests/ai.test.js && node tests/music_buttons.test.js && node tests/music_setup.test.js && node tests/notification_setup.test.js"
   },
   "keywords": [
     "discord",
