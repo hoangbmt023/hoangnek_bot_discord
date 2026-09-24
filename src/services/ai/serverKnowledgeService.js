@@ -72,7 +72,7 @@ class ServerKnowledgeService {
     const sections = [];
 
     if (guild && guild.id) {
-      const guildSettingsService = require('../guildSettingsService');
+      const guildSettingsService = require('../settings/guildSettingsService');
       const knowledgeConfig = guildSettingsService.getKnowledgeConfig(guild.id);
 
       logger.info(
@@ -402,7 +402,7 @@ class ServerKnowledgeService {
 
     // 3. Kiểm tra văn bản tùy chỉnh của Guild nếu chưa có dynamicKnowledgeText
     if (guild && guild.id && !dynamicKnowledgeText) {
-      const guildSettingsService = require('../guildSettingsService');
+      const guildSettingsService = require('../settings/guildSettingsService');
       const knowledgeConfig = guildSettingsService.getKnowledgeConfig(guild.id);
       const customTexts = knowledgeConfig.customTexts || (knowledgeConfig.customText ? [knowledgeConfig.customText] : []);
       const combinedCustom = customTexts.join('\n').toLowerCase();

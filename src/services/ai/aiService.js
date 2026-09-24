@@ -7,7 +7,7 @@ const serverKnowledgeService = require('./serverKnowledgeService');
 const memoryService = require('./memoryService');
 const promptService = require('./promptService');
 const tavilySearchService = require('./tavilySearchService');
-const guildSettingsService = require('../guildSettingsService');
+const guildSettingsService = require('../settings/guildSettingsService');
 
 /**
  * AIService

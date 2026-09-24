@@ -1,7 +1,7 @@
-const RuleBasedDetector = require('../src/services/toxicity/RuleBasedDetector');
-const warningStore = require('../src/services/warningStore');
-const whitelistService = require('../src/services/whitelistService');
-const guildSettingsService = require('../src/services/guildSettingsService');
+const RuleBasedDetector = require('../src/services/moderation/toxicity/RuleBasedDetector');
+const warningStore = require('../src/services/moderation/warningStore');
+const whitelistService = require('../src/services/moderation/whitelistService');
+const guildSettingsService = require('../src/services/settings/guildSettingsService');
 const MODERATION_CONFIG = require('../src/config/moderation');
 
 async function runTests() {
@@ -205,7 +205,7 @@ async function runTests() {
   // Test Case 7: Kiểm tra Tạo Embed Trợ Giúp (/help) và HelpCommandHandler
   console.log('\n🧪 Kiểm tra Tạo Embed Trợ Giúp (/help) & HelpCommandHandler...');
   const EmbedBuilderUtility = require('../src/utils/embedBuilder');
-  const helpCommandHandler = require('../src/services/helpCommandHandler');
+  const helpCommandHandler = require('../src/services/help/helpCommandHandler');
 
   // Kiểm tra nhận diện lệnh trợ giúp
   if (!helpCommandHandler.isHelpCommand('!help')) throw new Error('❌ Không nhận diện được !help');
