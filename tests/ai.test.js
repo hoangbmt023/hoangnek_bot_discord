@@ -7,7 +7,7 @@ const aiService = require('../src/services/ai/aiService');
 const geminiService = require('../src/services/ai/geminiService');
 const openrouterService = require('../src/services/ai/openrouterService');
 const tavilySearchService = require('../src/services/ai/tavilySearchService');
-const askCommandHandler = require('../src/services/askCommandHandler');
+const askCommandHandler = require('../src/services/ai/askCommandHandler');
 const { ChannelType } = require('discord.js');
 
 async function runTests() {
@@ -253,7 +253,7 @@ async function runTests() {
   // TEST 8: Cấu hình Model AI tùy chỉnh theo Server (/setup ai & !setup ai)
   // =========================================================================
   console.log('\n--- 8. Kiểm thử Cấu hình Model AI theo Server (GuildSettingsService) ---');
-  const guildSettingsService = require('../src/services/guildSettingsService');
+  const guildSettingsService = require('../src/services/settings/guildSettingsService');
   const testGuildAi = 'guild_ai_model_test_999';
 
   // 1. Mặc định ban đầu
@@ -400,7 +400,7 @@ async function runTests() {
   };
   const formattedSearch = tavilySearchService.formatSearchResults(mockTavilyData);
   assert(formattedSearch.includes('TAVILY AI SEARCH RAG'));
-  assert(formattedSearch.includes('TỔNG HỢP TRỰC TIẾP TỪ TAVILY SEARCH'));
+  assert(formattedSearch.includes('TỔNG HỢP NỘI DUNG TÌM KIẾM') || formattedSearch.includes('TỔNG HỢP TRỰC TIẾP TỪ TAVILY SEARCH'));
   assert(formattedSearch.includes('Lã Phương Tiến Đạt'));
   assert(formattedSearch.includes('https://liquipedia.net/pubg/Himass'));
 
@@ -474,7 +474,7 @@ async function runTests() {
   assert.strictEqual(notFoundRes.notFound, true);
 
   // 3. Cài đặt Nhiều Tin nhắn chỉ định (bằng Link hoặc ID)
-  const setupCommandHandler = require('../src/services/setupCommandHandler');
+  const setupCommandHandler = require('../src/services/settings/setupCommandHandler');
   const parsedLink = setupCommandHandler.extractMessageInfo('https://discord.com/channels/111222/333444/555666');
   assert.deepStrictEqual(parsedLink, { channelId: '333444', messageId: '555666' }, 'Phải bóc tách được channelId và messageId từ link Discord');
 

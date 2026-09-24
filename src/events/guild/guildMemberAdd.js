@@ -1,6 +1,6 @@
 const { Events } = require('discord.js');
 const BaseEvent = require('../BaseEvent');
-const memberNotificationService = require('../../services/memberNotificationService');
+const memberNotificationService = require('../../services/notifications/memberNotificationService');
 
 /**
  * GuildMemberAddEvent

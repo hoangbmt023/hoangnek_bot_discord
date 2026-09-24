@@ -1,10 +1,10 @@
 const { Events } = require('discord.js');
 const BaseEvent = require('../BaseEvent');
-const moderationService = require('../../services/moderationService');
-const helpCommandHandler = require('../../services/helpCommandHandler');
-const setupCommandHandler = require('../../services/setupCommandHandler');
-const musicCommandHandler = require('../../services/musicCommandHandler');
-const askCommandHandler = require('../../services/askCommandHandler');
+const moderationService = require('../../services/moderation/moderationService');
+const helpCommandHandler = require('../../services/help/helpCommandHandler');
+const setupCommandHandler = require('../../services/settings/setupCommandHandler');
+const musicCommandHandler = require('../../services/music/musicCommandHandler');
+const askCommandHandler = require('../../services/ai/askCommandHandler');
 
 /**
  * MessageCreateEvent

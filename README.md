@@ -86,7 +86,19 @@ hoangnek_bot_discord/
 │   └── daily/                # Log được tự động phân tách theo ngày
 ├── src/
 │   ├── commands/
-│   │   └── slashCommands.js  # Cấu hình & Đăng ký Slash Command (/ask, /setup, /music, /help)
+│   │   ├── slashCommands.js  # Điều phối đăng ký Slash Commands toàn cầu (/ask, /setup, /music, /help)
+│   │   └── builders/         # Các builder cấu hình Slash Command tách riêng biệt
+│   │       ├── setupCommandBuilder.js # Builder Facade cho /setup
+│   │       ├── setup/                 # Subcommand Groups con (/setup)
+│   │       │   ├── channelGroup.js    # /setup channel
+│   │       │   ├── whitelistGroup.js  # /setup whitelist
+│   │       │   ├── featureGroup.js    # /setup feature
+│   │       │   ├── notifyGroup.js     # /setup notify
+│   │       │   ├── aiGroup.js         # /setup ai
+│   │       │   └── knowledgeGroup.js  # /setup knowledge
+│   │       ├── musicCommandBuilder.js # Builder cho /music
+│   │       ├── helpCommandBuilder.js  # Builder cho /help
+│   │       └── askCommandBuilder.js   # Builder cho /ask
 │   ├── config/
 │   │   ├── env.js            # Nạp và kiểm tra tính hợp lệ của biến môi trường (AI & Bot)
 │   │   └── moderation.js     # Cấu hình ngưỡng phạt và nhãn phân loại tiếng Việt
@@ -101,46 +113,64 @@ hoangnek_bot_discord/
 │   │       ├── guildCreate.js       # Sự kiện khi Bot được thêm vào server mới
 │   │       ├── guildMemberAdd.js    # Sự kiện thành viên vào server (Gửi thẻ Welcome)
 │   │       ├── guildMemberRemove.js # Sự kiện thành viên rời server (Gửi thẻ Leave)
-│   │       ├── interactionCreate.js # Xử lý Slash Command (/ask, /setup, /music, /help) & Nút bấm
-│   │       ├── messageCreate.js     # Điều phối tin nhắn (!ask, s! music, !setup) & kiểm duyệt
+│   │       ├── interactionCreate.js # Event Router tinh gọn (~90 dòng) điều phối Slash Command & Nút bấm
+│   │       ├── messageCreate.js     # Message Router điều phối tin nhắn (!ask, s! music, !setup)
 │   │       └── voiceStateUpdate.js  # Giám sát trạng thái voice, tự động rời phòng trống
-│   ├── music/
-│   │   ├── Track.js                 # Đại diện bài hát & nạp Audio Resource
-│   │   ├── YtDlpService.js          # Dịch vụ yt-dlp & FFmpeg stream PCM chất lượng cao
-│   │   ├── MusicSourceResolver.js   # Phân giải YouTube, Spotify -> Smart YouTube Matcher, Direct Audio
-│   │   ├── GuildQueue.js            # Quản lý hàng đợi nhạc, Player và Voice Connection
-│   │   └── MusicManager.js          # Quản lý singleton GuildQueue các Server
-│   ├── services/
-│   │   ├── ai/                      # Module Trợ lý AI Assistant Thông Minh & RAG
+│   ├── services/             # Business Logic phân chia theo từng Domain (DDD)
+│   │   ├── ai/                      # 🤖 Domain Trợ lý AI Assistant & RAG
+│   │   │   ├── skills/              # 📄 Prompt Templates dạng Markdown (.md)
+│   │   │   │   ├── systemPrompt.md  # System prompt chuẩn mực (chống trích nguồn thô)
+│   │   │   │   └── searchRagPrompt.md # Template format dữ liệu RAG Internet Grounding
 │   │   │   ├── aiService.js              # Bộ điều phối trung tâm (Primary & Fallback)
+│   │   │   ├── askCommandHandler.js     # Handler cho lệnh !ask và /ask
 │   │   │   ├── geminiService.js          # Tích hợp Google Gemini API
 │   │   │   ├── openrouterService.js      # Tích hợp OpenRouter Fallback Multi-model
-│   │   │   ├── tavilySearchService.js    # Tích hợp Tavily AI Search RAG (Basic -> Advanced)
+│   │   │   ├── tavilySearchService.js    # Tích hợp Tavily AI Search RAG (lọc sạch citation thô)
 │   │   │   ├── serverKnowledgeService.js # Quản lý cơ sở tri thức Server (Discord Dynamic RAG)
 │   │   │   ├── serverContextService.js   # Trích xuất ngữ cảnh server thời gian thực
-│   │   │   ├── promptService.js          # Xây dựng System Prompt & User Prompt chuẩn hóa
+│   │   │   ├── promptService.js          # Nạp template .md từ skills/ và bind dữ liệu
 │   │   │   └── memoryService.js          # Bộ nhớ hội thoại ngắn hạn theo Guild/User
-│   │   ├── toxicity/                # Các bộ phân loại ngôn từ độc hại (Strategy Pattern)
-│   │   │   ├── IToxicityDetector.js      # Interface chuẩn hóa cho bộ lọc ngôn từ
-│   │   │   ├── RuleBasedDetector.js      # Bộ lọc dựa trên từ khóa Regex tốc độ cao
-│   │   │   ├── AIModelDetector.js        # Phân loại ngữ cảnh AI
-│   │   │   └── HybridToxicityDetector.js # Bộ lọc lai ghép kết hợp Rule + AI Model
-│   │   ├── askCommandHandler.js     # Xử lý lệnh hỏi đáp !ask / /ask
-│   │   ├── channelSetupService.js   # Quản lý cấu hình phân quyền kênh
-│   │   ├── setupCommandHandler.js   # Xử lý lệnh cấu hình trung tâm (!setup ...)
-│   │   ├── musicCommandHandler.js   # Xử lý toàn bộ lệnh phát nhạc tiền tố s!
-│   │   ├── musicButtonHandler.js    # Xử lý tương tác nút bấm Player & phân trang Hàng đợi
-│   │   ├── memberNotificationService.js # Business logic gửi thông báo Chào mừng/Tạm biệt
-│   │   ├── moderationService.js         # Business logic kiểm duyệt tin nhắn tự động
-│   │   ├── warningStore.js              # Quản lý điểm phạt & thời gian hết hạn
-│   │   ├── whitelistService.js          # Quản lý lưu trữ Whitelist theo Guild
-│   │   ├── whitelistCommandHandler.js   # Xử lý lệnh cấu hình !setup whitelist
-│   │   ├── guildSettingsService.js      # Quản lý cấu hình tính năng & AI Model theo Guild
-│   │   ├── featureCommandHandler.js     # Xử lý lệnh cấu hình !setup feature
-│   │   └── helpCommandHandler.js        # Xử lý lệnh trợ giúp !help / /help / s!help
+│   │   ├── music/                   # 🎵 Domain Hệ thống Phát Nhạc
+│   │   │   ├── Track.js                 # Đại diện bài hát & nạp Audio Resource
+│   │   │   ├── YtDlpService.js          # Dịch vụ yt-dlp & FFmpeg stream native OggOpus
+│   │   │   ├── MusicSourceResolver.js   # Phân giải YouTube, Spotify -> RAM Cache 1000 bài
+│   │   │   ├── GuildQueue.js            # Quản lý hàng đợi nhạc, Player và Voice Connection
+│   │   │   ├── MusicManager.js          # Quản lý singleton GuildQueue các Server
+│   │   │   ├── musicCommandHandler.js   # Handler cho lệnh phát nhạc prefix s!
+│   │   │   ├── musicButtonHandler.js    # Handler cho tương tác nút bấm Player & phân trang
+│   │   │   └── musicSlashHandler.js     # Handler cho Slash Command /music
+│   │   ├── moderation/              # 🛡️ Domain Kiểm Duyệt & Whitelist
+│   │   │   ├── moderationService.js     # Business logic kiểm duyệt tin nhắn tự động
+│   │   │   ├── warningStore.js          # Quản lý điểm phạt & thời gian hết hạn sau 24h
+│   │   │   ├── whitelistService.js      # Quản lý lưu trữ Whitelist theo Guild
+│   │   │   ├── whitelistCommandHandler.js # Xử lý lệnh cấu hình !setup whitelist
+│   │   │   └── toxicity/                # Strategy Pattern phân loại độc hại
+│   │   │       ├── IToxicityDetector.js # Interface chuẩn hóa cho bộ lọc ngôn từ
+│   │   │       ├── RuleBasedDetector.js # Bộ lọc Regex tốc độ cao & teencode tiếng Việt
+│   │   │       ├── AIModelDetector.js   # Phân loại ngữ cảnh AI
+│   │   │       └── HybridToxicityDetector.js # Kết hợp Rule + AI Model
+│   │   ├── settings/                # ⚙️ Domain Cấu Hình Server & Phân Quyền
+│   │   │   ├── guildSettingsService.js  # Quản lý cấu hình đa server tại data/guild_settings.json
+│   │   │   ├── channelSetupService.js   # Quản lý phân quyền kênh lệnh
+│   │   │   ├── featureCommandHandler.js # Xử lý lệnh bật/tắt tính năng (!setup feature)
+│   │   │   ├── setupCommandHandler.js   # Facade router tinh gọn điều phối !setup
+│   │   │   ├── setupSlashHandler.js     # Handler cho Slash Command /setup & Autocomplete
+│   │   │   └── handlers/                # Các Sub-handlers chuyên biệt (AI, Kênh, Notify, Knowledge, Whitelist...)
+│   │   ├── notifications/           # 🔔 Domain Thông Báo Thành Viên
+│   │   │   └── memberNotificationService.js # Business logic gửi thông báo Chào mừng/Tạm biệt
+│   │   └── help/                    # ❓ Domain Trợ Giúp
+│   │       └── helpCommandHandler.js    # Xử lý lệnh trợ giúp !help / /help / s!help
 │   ├── utils/
-│   │   ├── embedBuilder.js   # Module chuyên tạo Embed Card Discord tiếng Việt chuẩn UI
-│   │   └── logger.js         # Hệ thống log màu sắc theo thời gian thực
+│   │   ├── embedBuilder.js   # Facade điều phối tạo Embed Card Discord tiếng Việt chuẩn UI
+│   │   ├── embeds/           # Modules Embeds phân theo Domain
+│   │   │   ├── colors.js     # Bảng màu chuẩn thống nhất
+│   │   │   ├── notificationEmbeds.js # Embeds Chào mừng / Tạm biệt
+│   │   │   ├── moderationEmbeds.js   # Embeds Cảnh báo & Whitelist
+│   │   │   ├── settingsEmbeds.js     # Embeds Cấu hình Server (Feature, AI, Knowledge, Channel, Notify)
+│   │   │   ├── helpEmbeds.js         # Embeds Hướng dẫn sử dụng
+│   │   │   ├── musicEmbeds.js        # Embeds & Button Rows Phát nhạc
+│   │   │   └── aiEmbeds.js           # Embeds Trạng thái & Phản hồi AI
+│   │   └── logger.js         # Hệ thống log màu sắc theo thời gian thực & xoay vòng file
 │   └── index.js              # Entrypoint khởi chạy ứng dụng
 ├── tests/
 │   ├── ai.test.js                 # Test toàn diện AI Assistant, Tavily RAG & Setup Model

@@ -1,10 +1,10 @@
 const assert = require('assert');
-const channelSetupService = require('../src/services/channelSetupService');
-const setupCommandHandler = require('../src/services/setupCommandHandler');
-const musicCommandHandler = require('../src/services/musicCommandHandler');
-const helpCommandHandler = require('../src/services/helpCommandHandler');
-const Track = require('../src/music/Track');
-const MusicSourceResolver = require('../src/music/MusicSourceResolver');
+const channelSetupService = require('../src/services/settings/channelSetupService');
+const setupCommandHandler = require('../src/services/settings/setupCommandHandler');
+const musicCommandHandler = require('../src/services/music/musicCommandHandler');
+const helpCommandHandler = require('../src/services/help/helpCommandHandler');
+const Track = require('../src/services/music/Track');
+const MusicSourceResolver = require('../src/services/music/MusicSourceResolver');
 const EmbedBuilderUtility = require('../src/utils/embedBuilder');
 
 async function runTests() {
