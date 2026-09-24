@@ -82,14 +82,26 @@ const formatParams = (params) => {
 };
 
 /**
- * Ghi log vào file bất đồng bộ (Non-blocking)
+ * Ánh xạ mã màu cho từng cấp độ log
+ */
+const LEVEL_COLORS = {
+  INFO: colors.green,
+  WARN: colors.yellow,
+  ERROR: colors.red,
+  DEBUG: colors.cyan,
+  SUCCESS: colors.magenta,
+};
+
+/**
+ * Ghi log vào file bất đồng bộ (Non-blocking) kèm mã màu ANSI để hiển thị đẹp mắt khi tail -f / cat trên terminal
  */
 const writeToFile = (level, message, ...optionalParams) => {
   const timestamp = getTimestamp();
   const extra = formatParams(optionalParams);
-  const logLine = `[${timestamp}] [${level}] ${message}${extra ? ' ' + extra : ''}\n`;
+  const levelColor = LEVEL_COLORS[level] || colors.green;
+  const logLine = `${colors.dim}[${timestamp}]${colors.reset} ${levelColor}[${level}]${colors.reset} ${message}${extra ? ' ' + extra : ''}\n`;
 
-  // 1. File tổng hợp chung (dễ tail -f)
+  // 1. File tổng hợp chung (dễ xem trực tiếp với tail -f app.log)
   const appLogPath = path.join(LOG_DIR, 'app.log');
   fs.appendFile(appLogPath, logLine, () => {});
 

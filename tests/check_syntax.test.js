@@ -2,23 +2,19 @@ const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-// Bảng màu ANSI định dạng Terminal sắc nét
 const COLORS = {
   RESET: '\x1b[0m',
   BOLD: '\x1b[1m',
-  CYAN: '\x1b[36m',
   GREEN: '\x1b[32m',
-  YELLOW: '\x1b[33m',
   RED: '\x1b[31m',
+  CYAN: '\x1b[36m',
   GRAY: '\x1b[90m',
-  BG_GREEN: '\x1b[42m\x1b[30m',
-  BG_RED: '\x1b[41m\x1b[37m',
 };
 
 let totalChecked = 0;
-let failedFiles = [];
+const failedFiles = [];
 
-function checkDir(dir, baseDirName) {
+function checkDir(dir, baseDirName = '') {
   if (!fs.existsSync(dir)) return;
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -50,12 +46,12 @@ checkDir(path.join(__dirname, '../src'), 'src');
 checkDir(path.join(__dirname, '../tests'), 'tests');
 
 console.log('');
-if (failedFiles.length === 0) {
-  console.log(`${COLORS.BG_GREEN}${COLORS.BOLD} PASS ${COLORS.RESET} ${COLORS.GREEN}${COLORS.BOLD}Đã kiểm tra thành công ${totalChecked}/${totalChecked} tệp JS. Tất cả cú pháp hợp lệ 100%!${COLORS.RESET}\n`);
-} else {
-  console.error(`${COLORS.BG_RED}${COLORS.BOLD} FAIL ${COLORS.RESET} ${COLORS.RED}${COLORS.BOLD}Phát hiện ${failedFiles.length} tệp có lỗi cú pháp:${COLORS.RESET}\n`);
+if (failedFiles.length > 0) {
+  console.error(`${COLORS.RED}❌ Có ${failedFiles.length}/${totalChecked} tệp bị lỗi cú pháp:${COLORS.RESET}`);
   for (const fail of failedFiles) {
-    console.error(`  ${COLORS.RED}❌ ${fail.file}${COLORS.RESET}\n${COLORS.YELLOW}${fail.error}${COLORS.RESET}`);
+    console.error(`\n- ${COLORS.BOLD}${fail.file}${COLORS.RESET}:\n${fail.error}`);
   }
   process.exit(1);
+} else {
+  console.log(`${COLORS.BOLD}${COLORS.GREEN}✅ Đã kiểm tra cú pháp thành công ${totalChecked} tệp JavaScript! Không có lỗi.${COLORS.RESET}\n`);
 }
